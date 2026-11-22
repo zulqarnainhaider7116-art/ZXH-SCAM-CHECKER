@@ -7,7 +7,8 @@ import {
 
 type Screen = 'welcome' | 'home' | 'scan' | 'history' | 'settings';
 type Finding = { level: 'critical' | 'high' | 'medium' | 'low'; title: string; detail: string };
-type Result = { verdict: string; level: Finding['level']; findings: Finding[]; value: string; contentType?: 'url' | 'message' | 'message_with_link'; checkedSources?: string[]; unavailableSources?: string[]; domainRegistration?: { domain: string; registeredAt?: string; ageDays?: number; registrar?: string; status: 'found' | 'not_found' | 'unavailable' } };
+type PageAnalysis = { status: string; finalUrl?: string; title?: string; description?: string; keywords?: string[]; visibleTextPreview?: string; links?: string[]; forms?: string[]; iframeCount?: number; findings?: Finding[]; contentLength?: number };
+type Result = { verdict: string; level: Finding['level']; findings: Finding[]; value: string; contentType?: 'url' | 'message' | 'message_with_link'; checkedSources?: string[]; unavailableSources?: string[]; pageAnalysis?: PageAnalysis; domainRegistration?: { domain: string; registeredAt?: string; ageDays?: number; registrar?: string; status: 'found' | 'not_found' | 'unavailable' } };
 
 function inspect(value: string): Result {
   const text = value.trim();
@@ -88,27 +89,7 @@ function App() {
   const [homeUrl, setHomeUrl] = useState('');
   const [result, setResult] = useState<Result | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [installDialog, setInstallDialog] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
-  useEffect(() => {
-    const beforeInstall = (event: Event) => { event.preventDefault(); setInstallPrompt(event); };
-    const installed = () => { setIsInstalled(true); setInstallPrompt(null); setInstallDialog(false); };
-    window.addEventListener('beforeinstallprompt', beforeInstall);
-    window.addEventListener('appinstalled', installed);
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
-    setIsInstalled(standalone);
-    return () => { window.removeEventListener('beforeinstallprompt', beforeInstall); window.removeEventListener('appinstalled', installed); };
-  }, []);
-  const openInstallDialog = () => setInstallDialog(true);
-  const installApp = async () => {
-    if (!installPrompt) return;
-    try {
-      await (installPrompt as any).prompt();
-      const choice = await (installPrompt as any).userChoice;
-      if (choice?.outcome === 'accepted') { setInstallDialog(false); setInstallPrompt(null); }
-    } catch { setNotice('Install prompt is not available yet. Use Chrome menu → Add to Home screen.'); }
-  };
+
   const [history, setHistory] = useState<Result[]>(() => { try { const saved = localStorage.getItem('zxh-cyberguard-history-v1'); return saved ? (JSON.parse(saved) as Result[]).slice(0, 30) : []; } catch { return []; } });
   const [notice, setNotice] = useState('');
   useEffect(() => { try { localStorage.setItem('zxh-cyberguard-history-v1', JSON.stringify(history.slice(0, 30))); } catch { /* storage may be unavailable */ } }, [history]);
@@ -135,10 +116,19 @@ function App() {
       let next: Result;
       if (isUrl) {
         const findings: Finding[] = Array.isArray(data.findings) ? [...data.findings] : [];
-        const statusLevel: Finding['level'] = data.status === 'malicious' ? 'critical' : data.status === 'suspicious' ? (data.level === 'high' ? 'high' : 'medium') : 'medium';
-        const verdict = data.status === 'malicious' ? 'Known malicious URL detected' : data.status === 'suspicious' ? 'Suspicious URL characteristics found' : data.status === 'not_listed' ? 'No known threat match — not verified safe' : 'Reputation check incomplete';
-        if (!findings.length) findings.push({ level: statusLevel, title: 'URL review completed', detail: 'Review the destination carefully. No automated scan can guarantee a website is safe.' });
-        next = { value: scanTarget, contentType: 'url', level: statusLevel, verdict, findings, checkedSources: Array.isArray(data.checkedSourceNames) ? data.checkedSourceNames : [], unavailableSources: Array.isArray(data.unavailableSources) ? data.unavailableSources : [], domainRegistration: data.domainRegistration };
+        let pageAnalysis: PageAnalysis | undefined;
+        try {
+          const pageResponse = await fetch('/api/inspect-page', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: scanTarget }) });
+          const pageData = await pageResponse.json();
+          if (pageData.pageAnalysis) {
+            pageAnalysis = pageData.pageAnalysis as PageAnalysis;
+            if (Array.isArray(pageAnalysis.findings)) findings.push(...pageAnalysis.findings);
+          }
+        } catch { findings.push({ level: 'low', title: 'Page content inspection unavailable', detail: 'Threat reputation checks completed separately, but page HTML could not be inspected.' }); }
+        const statusLevel: Finding['level'] = data.status === 'malicious' ? 'critical' : findings.some(f => f.level === 'critical') ? 'critical' : findings.some(f => f.level === 'high') ? 'high' : findings.some(f => f.level === 'medium') ? 'medium' : 'low';
+        const verdict = data.status === 'malicious' ? 'Known malicious URL detected' : statusLevel === 'critical' ? 'Critical content indicators detected' : statusLevel === 'high' ? 'High-risk website content detected' : statusLevel === 'medium' ? 'Suspicious website indicators found' : data.status === 'not_listed' ? 'No known threat match — not verified safe' : 'Website review completed — not verified safe';
+        if (!findings.length) findings.push({ level: 'low', title: 'URL review completed', detail: 'No obvious indicator was found in the checks that completed. This does not prove the destination is safe.' });
+        next = { value: scanTarget, contentType: 'url', level: statusLevel, verdict, findings, pageAnalysis, checkedSources: Array.isArray(data.checkedSourceNames) ? data.checkedSourceNames : [], unavailableSources: Array.isArray(data.unavailableSources) ? data.unavailableSources : [], domainRegistration: data.domainRegistration };
       } else { next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted, contentType: detectedKind }; }
       await minimumScanTime;
       setResult(next); setAlertDismissed(false); setHistory(old => [next, ...old].slice(0, 30)); setNotice('');
@@ -167,9 +157,8 @@ function App() {
   const riskCounts = useMemo(() => ({ critical: history.filter(x => x.level === 'critical').length, high: history.filter(x => x.level === 'high').length, medium: history.filter(x => x.level === 'medium').length }), [history]);
   return <main className="app">
     <div className="ambient a1"/><div className="ambient a2"/><div className="ambient a3"/>
-    {installDialog && <div className="install-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) setInstallDialog(false); }}><section className="install-modal" role="dialog" aria-modal="true" aria-labelledby="install-title"><button className="install-close" onClick={() => setInstallDialog(false)} aria-label="Close install dialog"><X size={20}/></button><div className="install-icon"><ShieldCheck size={34}/></div><small>ZXH OFFICIAL • CYBERGUARD</small><h2 id="install-title">{isInstalled ? "APP ALREADY INSTALLED" : "INSTALL CYBERGUARD"}</h2><p>Get the ZXH OFFICIAL security scanner on your home screen for a faster, app-like experience.</p>{installPrompt ? <button className="install-confirm" onClick={() => void installApp()}>INSTALL APP <Download size={17}/></button> : <div className="install-steps"><b>INSTALL FROM CHROME</b><span>1. Tap the ⋮ menu in Chrome.</span><span>2. Choose “Install app” or “Add to Home screen”.</span><span>3. Confirm to add ZXH CyberGuard.</span></div>}<button className="install-later" onClick={() => setInstallDialog(false)}>MAYBE LATER</button><footer>POWERED BY ZXH OFFICIAL · CREATED BY ZULQARNAIN X HAIDER</footer></section></div>}
     {screen === 'welcome' && <section className="welcome-screen">
-      <div className="welcome-topline"><span>ZXH OFFICIAL</span><button className="welcome-install" onClick={openInstallDialog} disabled={isInstalled}>{isInstalled ? "✓ INSTALLED" : "＋ INSTALL APP"}</button></div>
+      <div className="welcome-topline"><span>ZXH OFFICIAL</span></div>
       <div className="welcome-visual"><div className="umbrella">◈</div><div className="hero-shield"><ShieldCheck size={36}/></div><Wave/></div>
       <div className="welcome-copy"><div className="micro-label">WELCOME TO ZXH OFFICIAL • DIGITAL PROTECTION SYSTEM</div><h1>CyberGuard<br/><em>Phishing Attack Shield</em></h1><p>Stay protected. Spot suspicious links and messages before they become a threat.</p></div>
       <button className="round-start" onClick={() => navigateTo('home')} aria-label="Enter CyberGuard"><ArrowRight/></button>
@@ -178,7 +167,7 @@ function App() {
     {screen !== 'welcome' && <>
       <header className="app-header">
         <button className="brand-lockup" onClick={() => setScreen('home')}><span className="brand-symbol"><ShieldCheck size={19}/></span><span><b>ZXH <i>OFFICIAL</i></b><small>CYBERGUARD SHIELD</small></span></button>
-        <div className="header-actions"><button className="install-app-button" onClick={openInstallDialog} disabled={isInstalled}>{isInstalled ? <Check size={15}/> : <Download size={15}/>}<span>{isInstalled ? "APP INSTALLED" : "INSTALL APP"}</span></button><button className="icon-btn" aria-label="Notifications" onClick={() => setNotice('You are all caught up.')}><Bell size={18}/></button></div>
+        <div className="header-actions"><button className="icon-btn" aria-label="Notifications" onClick={() => setNotice('You are all caught up.')}><Bell size={18}/></button></div>
       </header>
       {screen === 'home' && <section className="dashboard page-in">
         <div className="greeting"><div><small>WELCOME BACK</small><h1>Cyber Defender</h1><p>Your digital safety overview</p></div><div className="avatar"><ShieldCheck/></div></div>
@@ -222,6 +211,17 @@ function App() {
           <div className="section-title"><h2>Threat Analysis Report</h2><span>JUST NOW</span></div>
           {(result.level === "critical" || result.level === "high") && !alertDismissed && <div className="zxh-alert-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) setAlertDismissed(true); }}><section className="zxh-alert-modal" role="alertdialog" aria-modal="true" aria-labelledby="zxh-alert-title"><button className="zxh-alert-close" aria-label="Close alert" onClick={() => setAlertDismissed(true)}><X size={21}/></button><div className="alert-flash"><span>⚠</span></div><div className="zxh-alert-brand">𖤍 ZXH OFFICIAL 𖤍</div><small className="zxh-alert-kicker">CYBERGUARD SECURITY WARNING</small><strong id="zxh-alert-title">THREAT ALERT</strong><b className="zxh-alert-risk">{result.level.toUpperCase()} RISK DETECTED</b><p>{result.findings.length} suspicious indicator(s) found. Do not open the link or share passwords, OTPs or payment details.</p><div className="zxh-alert-owner">PROTECTED BY <b>ZXH OFFICIAL</b><span>CREATED BY ZULQARNAIN X HAIDER</span></div><button className="zxh-alert-action" onClick={() => { setAlertDismissed(true); window.setTimeout(() => document.querySelector(".result-card")?.scrollIntoView({behavior:"smooth",block:"start"}), 80); }}>VIEW FULL REPORT <ArrowRight size={17}/></button></section></div>}<div className="result-card glass-panel">
             <div className="result-signal"><div className="result-signal-icon"><ShieldCheck size={25}/></div><div><span>ZXH OFFICIAL • THREAT ANALYSIS</span><b>SCAN COMPLETED</b></div><i className={'result-level-dot ' + result.level}/></div><div className="scanned-target"><small>{result.contentType === "url" ? "SCANNED WEBSITE / URL" : result.contentType === "message_with_link" ? "SCANNED TEXT MESSAGE • LINK FOUND" : "SCANNED TEXT MESSAGE"}</small><span>{result.value}</span><em className="content-type-chip">{result.contentType === "url" ? "URL SCAN" : result.contentType === "message_with_link" ? "MESSAGE + LINK SCAN" : "MESSAGE SCAN"}</em></div>
+            {result.pageAnalysis && <div className="page-intel">
+              <div className="page-intel-head"><b>DEEP WEBSITE CONTENT INSPECTION</b><span>{result.pageAnalysis.status === 'inspected' ? 'HTML INSPECTED' : 'PARTIAL CHECK'}</span></div>
+              {result.pageAnalysis.title && <div className="page-intel-field"><small>PAGE TITLE</small><strong>{result.pageAnalysis.title}</strong></div>}
+              {result.pageAnalysis.description && <div className="page-intel-field"><small>META DESCRIPTION</small><p>{result.pageAnalysis.description}</p></div>}
+              {!!result.pageAnalysis.keywords?.length && <div className="page-intel-field"><small>META KEYWORDS</small><p>{result.pageAnalysis.keywords.join(' • ')}</p></div>}
+              {!!result.pageAnalysis.visibleTextPreview && <div className="page-intel-field"><small>VISIBLE TEXT PREVIEW</small><p>{result.pageAnalysis.visibleTextPreview}</p></div>}
+              {!!result.pageAnalysis.findings?.length && <div className="page-intel-field"><small>CONTENT INDICATORS</small><p>{result.pageAnalysis.findings.length} content indicator(s) detected and included in the risk report.</p></div>}
+              {!!result.pageAnalysis.forms?.length && <div className="page-intel-field"><small>FORM DESTINATIONS</small>{result.pageAnalysis.forms.map((url,i)=><a key={i} href={url} target="_blank" rel="noopener noreferrer">{url}</a>)}</div>}
+              {!!result.pageAnalysis.links?.length && <div className="page-intel-field"><small>PAGE LINKS ({result.pageAnalysis.links.length})</small>{result.pageAnalysis.links.slice(0,8).map((url,i)=><a key={i} href={url} target="_blank" rel="noopener noreferrer">{url}</a>)}</div>}
+              <div className="page-intel-foot">Inspected {result.pageAnalysis.contentLength || 0} HTML characters • Forms are never submitted • Page scripts are never executed</div>
+            </div>}
             <div className={'verdict ' + result.level}><span className="verdict-icon"><CircleAlert size={19}/></span><div><b>{result.verdict}</b><small>{result.level.toUpperCase()} RISK INDICATORS</small></div></div>
             <div className="finding-list">{result.findings.map((f,i) => <div className="finding" key={i}><span>•</span><div><b>{f.title}</b><p>{f.detail}</p></div></div>)}</div>
             {result.domainRegistration ? <div className="domain-intel"><b>DOMAIN REGISTRATION INTELLIGENCE</b><span><strong>{result.domainRegistration.domain}</strong></span>{result.domainRegistration.status === 'found' ? <><span>Registration: {result.domainRegistration.registeredAt ? new Date(result.domainRegistration.registeredAt).toLocaleDateString() : 'Date not published'}</span><span>Domain age: {typeof result.domainRegistration.ageDays === 'number' ? result.domainRegistration.ageDays + ' days' : 'Not disclosed'}</span>{result.domainRegistration.registrar ? <span>Registrar: {result.domainRegistration.registrar}</span> : null}</> : <span className="source-off">Registration details {result.domainRegistration.status === 'not_found' ? 'not found' : 'unavailable'} from RDAP.</span>}</div> : null}
