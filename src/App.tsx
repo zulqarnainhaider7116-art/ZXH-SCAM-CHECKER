@@ -40,7 +40,6 @@ function Wave({ className = '' }: { className?: string }) {
 
 function App() {
   const [screen, setScreen] = useState<Screen>('welcome');
-  const [mode, setMode] = useState<'link' | 'message'>('link');
   const [input, setInput] = useState('');
   const [homeUrl, setHomeUrl] = useState('');
   const [homeResult, setHomeResult] = useState<Result | null>(null);
@@ -129,7 +128,7 @@ function App() {
         </div>}
       </section>}
       {screen === 'scan' && <section className="scan-page page-in">
-        <div className="scan-heading"><div className="scan-emblem"><ShieldCheck size={27}/></div><h1>Check Links</h1><p>Scan a suspicious URL or message</p></div>
+        <div className="scan-heading"><div className="scan-emblem"><ShieldCheck size={27}/></div><h1>Message Scanner</h1><p>Analyse suspicious SMS and WhatsApp messages</p></div>
         <Wave className="scan-wave"/>
         <div className="scan-form glass-panel">
           <div className="message-mode-label"><MessageSquareText size={16}/> MESSAGE THREAT ANALYSER</div>
@@ -147,7 +146,7 @@ function App() {
             <div className="finding-list">{result.findings.map((f,i) => <div className="finding" key={i}><span>•</span><div><b>{f.title}</b><p>{f.detail}</p></div></div>)}</div>
             <button className="scan-button" onClick={startNew}>CHECK AGAIN <ArrowRight size={17}/></button>
           </div>
-          <p className="disclaimer"><Shield size={14}/> Basic pattern-based review only. A low-risk result does not prove a link is safe.</p>
+          <p className="disclaimer"><Shield size={14}/> Backend pattern analysis only. A low-risk result does not prove a message is genuine.</p>
         </div>}
       </section>}
       {screen === 'history' && <section className="simple-page page-in"><div className="page-title"><small>YOUR ACTIVITY</small><h1>Scan History</h1><p>Recent checks on this device</p></div>{history.length ? history.map((item,i)=><div className="history-item" key={i}><span className={'history-dot ' + item.level}/><div><b>{item.verdict}</b><small>{item.value.slice(0,55)}</small></div><ChevronRight/></div>) : <div className="empty-state"><History size={32}/><b>No scans yet</b><p>Your recent link checks will appear here.</p><button onClick={() => setScreen('scan')}>Start scanning</button></div>}</section>}
