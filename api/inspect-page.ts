@@ -17,8 +17,13 @@ function plain(html:string) {
  return decode(html.replace(/<(script|style|noscript|svg|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi," ").replace(/<!--[\s\S]*?-->/g," ").replace(/<[^>]+>/g," ").replace(/\s+/g," ")).trim();
 }
 function meta(html:string,name:string) {
- const re=new RegExp('<meta\\b(?=[^>]*(?:name|property)=["\\']'+name+'["\\'])[^>]*content=["\\']([^"\\']*)["\\'][^>]*>',"i");
- return decode(html.match(re)?.[1]||"");
+ const tags=html.match(/<meta\b[^>]*>/gi)||[];
+ for(const tag of tags){
+  const n=tag.match(/\b(?:name|property)\s*=\s*["']([^"']+)["']/i)?.[1];
+  const c=tag.match(/\bcontent\s*=\s*["']([^"']*)["']/i)?.[1];
+  if(n?.toLowerCase()===name.toLowerCase() && c!==undefined)return decode(c);
+ }
+ return "";
 }
 function inspectText(text:string, base:URL, links:string[], forms:string[], iframeCount:number) {
  const findings:Finding[]=[]; const add=(level:Level,title:string,detail:string,evidence:string[]=[] )=>findings.push({level,title,detail,evidence:evidence.slice(0,5)});
