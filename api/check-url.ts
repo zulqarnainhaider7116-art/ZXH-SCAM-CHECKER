@@ -126,7 +126,7 @@ export default async function handler(req: any, res: any) {
       }
     } catch { unavailableSources.push("URLhaus"); }
   } else {
-    unavailableSources.push("URLhaus (API key not configured)");
+    unavailableSources.push("URLhaus (optional API key not configured)");
   }
 
   const googleKey = process.env.GOOGLE_SAFE_BROWSING_API_KEY;
@@ -138,6 +138,10 @@ export default async function handler(req: any, res: any) {
     } catch { unavailableSources.push("Google Safe Browsing"); }
   } else {
     unavailableSources.push("Google Safe Browsing (API key not configured)");
+  }
+
+  if (unavailableSources.length) {
+    findings.push({ level: "low", title: "Threat-feed coverage notice", detail: "Not checked or unavailable: " + unavailableSources.join(", ") + ". Results are based only on the sources that responded and local URL indicators." });
   }
 
   if (matchedSources.length) {
