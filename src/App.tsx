@@ -72,17 +72,17 @@ function App() {
     window.addEventListener('popstate', handleBack);
     return () => window.removeEventListener('popstate', handleBack);
   }, []);
-  useEffect(() => {
-    if (!scanning || screen !== 'scan') return;
-    const timer = window.setTimeout(() => radarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
-    return () => window.clearTimeout(timer);
-  }, [scanning, screen]);
   const [input, setInput] = useState('');
   const [homeUrl, setHomeUrl] = useState('');
   const [result, setResult] = useState<Result | null>(null);
   const [history, setHistory] = useState<Result[]>([]);
   const [notice, setNotice] = useState('');
   const [scanning, setScanning] = useState(false);
+  useEffect(() => {
+    if (!scanning || screen !== 'scan') return;
+    const timer = window.setTimeout(() => radarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    return () => window.clearTimeout(timer);
+  }, [scanning, screen]);
   const runScan = async (value = input) => {
     const submitted = value.trim();
     if (!submitted) { setNotice('Paste a message or URL first.'); return; }
