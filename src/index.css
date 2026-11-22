@@ -201,3 +201,11 @@ body{overflow-x:hidden}
   .radar-controls{gap:5px}.radar-controls button{font-size:7px}
 }
 @media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto}.page-in{animation:none}}
+
+
+/* Live source coverage in the scan report */
+.source-coverage{display:grid;gap:7px;margin:10px 0 16px;padding:13px 14px;border:1px solid rgba(116,212,235,.16);border-radius:13px;background:rgba(2,12,20,.48)}
+.source-coverage>b{font:600 8px Orbitron,sans-serif;letter-spacing:1.2px;color:#9ac8d7;margin-bottom:2px}
+.source-coverage>span{font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.source-ok{color:#65dcb1}.source-off{color:#ffbd78}
+@media(min-width:700px){.source-coverage{padding:16px 18px}.source-coverage>b{font-size:9px}.source-coverage>span{font-size:12px}}
