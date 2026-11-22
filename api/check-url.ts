@@ -30,8 +30,18 @@ function normalizeUrl(value: string) {
 function localUrlFindings(value: string): Finding[] {
   const u = new URL(value);
   const host = u.hostname.toLowerCase();
+  const inspected = (u.hostname + u.pathname + " " + u.searchParams.toString()).toLowerCase().replace(/[._+%-]+/g, " ");
   const findings: Finding[] = [];
   const add = (level: Finding["level"], title: string, detail: string) => findings.push({ level, title, detail });
+  const patterns: Array<{ regex: RegExp; title: string; detail: string; level: Finding["level"] }> = [
+    { regex: /(?:free|instant|unlimited|cheap|buy|get)\s*(?:instagram\s*)?(?:followers?|likes?|views?|comments?)/i, title: "Fake social engagement offer", detail: "Free or unusually cheap followers, likes or views are commonly used to collect logins, payment details or survey data.", level: "high" },
+    { regex: /(?:free|instant|unlimited|cheap|get|claim)\s*(?:youtube\s*)?(?:subscribers?|watch\s*time|views?)/i, title: "Fake YouTube growth offer", detail: "Free subscriber or watch-time offers can be used for credential theft, fake engagement or misleading surveys.", level: "high" },
+    { regex: /(?:free|claim|get|generator|unlimited)\s*(?:free\s*)?(?:fire\s*)?(?:diamonds?|diamond\s*generator)|(?:free|claim|get|generator|unlimited)\s*(?:pubg\s*)?(?:uc|unknown\s*cash)/i, title: "Free game currency offer", detail: "Free diamonds or UC generator pages are a common bait pattern. Never provide game credentials, OTPs or payment details.", level: "high" },
+    { regex: /(?:free|claim|get|unlimited|bonus)\s*(?:internet|mobile\s*data|data\s*pack|mbs?|gb|4g|5g)|(?:internet|data)\s*(?:free|offer|reward)/i, title: "Free internet / data bait", detail: "Unexpected free internet or data claims may lead to fake carrier login pages, surveys or personal-data collection.", level: "high" },
+    { regex: /(?:free|claim|get|win|exclusive)\s*(?:gift|giveaway|prize|reward|voucher|cash)/i, title: "Reward / giveaway bait", detail: "Unexpected reward links are often used to collect personal information or demand a processing fee.", level: "medium" },
+    { regex: /(?:instagram|facebook|tiktok|youtube|pubg|free\s*fire).{0,35}(?:login|verify|claim|free|reward|generator)/i, title: "Brand-themed login or reward bait", detail: "A familiar platform or game name combined with a login, verification or reward claim may be impersonation. Check the exact registered domain.", level: "medium" }
+  ];
+  for (const pattern of patterns) if (pattern.regex.test(inspected)) add(pattern.level, pattern.title, pattern.detail);
   if (u.username || u.password) add("high", "Hidden URL credentials", "This address contains user-info before the hostname. Do not sign in through it.");
   if (host.startsWith("xn--") || host.split(".").some(part => part.startsWith("xn--")))
     add("high", "Internationalized / look-alike domain", "Punycode can be used to make a domain look similar to a trusted brand. Verify the exact spelling.");
@@ -39,14 +49,11 @@ function localUrlFindings(value: string): Finding[] {
     add("high", "IP-address destination", "The link uses a raw IP address instead of a recognizable domain. Verify the destination independently.");
   if (/(bit\.ly|tinyurl\.com|t\.co|rb\.gy|cutt\.ly|shorturl\.at|is\.gd|rebrand\.ly)$/i.test(host))
     add("medium", "Shortened link detected", "The final destination is hidden until the short link is resolved. Do not open it unless you trust the sender.");
-  if (u.protocol === "http:")
-    add("medium", "Unencrypted HTTP connection", "This address does not use HTTPS. Information sent to it may not be encrypted.");
+  if (u.protocol === "http:") add("medium", "Unencrypted HTTP connection", "This address does not use HTTPS. Information sent to it may not be encrypted.");
   if (/\.(zip|mov|click|top|work|country|gq|tk|ml|cf)$/i.test(host))
     add("medium", "Higher-risk domain ending", "This domain ending is sometimes abused. The ending alone does not prove a scam; verify the domain and sender.");
-  if (host.split(".").length >= 5)
-    add("medium", "Unusually deep subdomain", "Many nested subdomains can make the real registered domain harder to notice.");
-  if (value.length > 180)
-    add("low", "Unusually long URL", "Long tracking or redirect parameters can hide the final destination. Review the domain carefully.");
+  if (host.split(".").length >= 5) add("medium", "Unusually deep subdomain", "Many nested subdomains can make the real registered domain harder to notice.");
+  if (value.length > 180) add("low", "Unusually long URL", "Long tracking or redirect parameters can hide the final destination. Review the domain carefully.");
   return findings;
 }
 
