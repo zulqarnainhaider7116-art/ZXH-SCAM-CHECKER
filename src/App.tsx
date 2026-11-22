@@ -7,7 +7,7 @@ import {
 
 type Screen = 'welcome' | 'home' | 'scan' | 'history' | 'settings';
 type Finding = { level: 'critical' | 'high' | 'medium' | 'low'; title: string; detail: string };
-type Result = { verdict: string; level: Finding['level']; findings: Finding[]; value: string; checkedSources?: string[]; unavailableSources?: string[]; domainRegistration?: { domain: string; registeredAt?: string; ageDays?: number; registrar?: string; status: 'found' | 'not_found' | 'unavailable' } };
+type Result = { verdict: string; level: Finding['level']; findings: Finding[]; value: string; contentType?: 'url' | 'message' | 'message_with_link'; checkedSources?: string[]; unavailableSources?: string[]; domainRegistration?: { domain: string; registeredAt?: string; ageDays?: number; registrar?: string; status: 'found' | 'not_found' | 'unavailable' } };
 
 function inspect(value: string): Result {
   const text = value.trim();
@@ -29,6 +29,15 @@ function inspect(value: string): Result {
   if (!findings.length) add('low', 'No obvious warning pattern', 'This quick local review cannot prove a link is safe. Verify the sender and destination before acting.');
   const level = findings.some(f => f.level === 'critical') ? 'critical' : findings.some(f => f.level === 'high') ? 'high' : findings.some(f => f.level === 'medium') ? 'medium' : 'low';
   return { verdict: level === 'critical' || level === 'high' ? 'Warning — suspicious signs found' : level === 'medium' ? 'Review carefully' : 'No obvious warning found', level, findings, value };
+}
+
+function detectContentType(value: string): 'url' | 'message' | 'message_with_link' {
+  const text = value.trim();
+  const urlPattern = /(?:https?:\\/\\/|www\\.)[^\\s]+|\\b[a-z0-9-]+(?:\\.[a-z0-9-]+)+(?:\\/[^\\s]*)?/i;
+  if (!urlPattern.test(text)) return 'message';
+  const match = text.match(urlPattern)?.[0] || '';
+  const isOnlyUrl = text.replace(match, '').replace(/[\\s.,!?;:()[\\]{}<>"']/g, '') === '';
+  return isOnlyUrl ? 'url' : 'message_with_link';
 }
 
 function Wave({ className = '' }: { className?: string }) {
@@ -73,6 +82,8 @@ function App() {
     return () => window.removeEventListener('popstate', handleBack);
   }, []);
   const [input, setInput] = useState('');
+  const [inputKind, setInputKind] = useState<'url' | 'message' | 'message_with_link'>('message');
+  const autoScanTimer = useRef<number | null>(null);
   const [homeUrl, setHomeUrl] = useState('');
   const [result, setResult] = useState<Result | null>(null);
   const [history, setHistory] = useState<Result[]>(() => { try { const saved = localStorage.getItem('zxh-cyberguard-history-v1'); return saved ? (JSON.parse(saved) as Result[]).slice(0, 30) : []; } catch { return []; } });
@@ -101,8 +112,8 @@ function App() {
         const statusLevel: Finding['level'] = data.status === 'malicious' ? 'critical' : data.status === 'suspicious' ? (data.level === 'high' ? 'high' : 'medium') : 'medium';
         const verdict = data.status === 'malicious' ? 'Known malicious URL detected' : data.status === 'suspicious' ? 'Suspicious URL characteristics found' : data.status === 'not_listed' ? 'No known threat match — not verified safe' : 'Reputation check incomplete';
         if (!findings.length) findings.push({ level: statusLevel, title: 'URL review completed', detail: 'Review the destination carefully. No automated scan can guarantee a website is safe.' });
-        next = { value: scanTarget, level: statusLevel, verdict, findings, checkedSources: Array.isArray(data.checkedSourceNames) ? data.checkedSourceNames : [], unavailableSources: Array.isArray(data.unavailableSources) ? data.unavailableSources : [], domainRegistration: data.domainRegistration };
-      } else { next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted }; }
+        next = { value: scanTarget, contentType: 'url', level: statusLevel, verdict, findings, checkedSources: Array.isArray(data.checkedSourceNames) ? data.checkedSourceNames : [], unavailableSources: Array.isArray(data.unavailableSources) ? data.unavailableSources : [], domainRegistration: data.domainRegistration };
+      } else { next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted, contentType: detectedKind }; }
       await minimumScanTime;
       setResult(next); setHistory(old => [next, ...old].slice(0, 30)); setNotice('');
     } catch (error) {
@@ -114,7 +125,7 @@ function App() {
     if (!homeUrl.trim()) { setNotice('Paste a URL first.'); return; }
     setInput(homeUrl.trim()); setResult(null); navigateTo('scan'); void runScan(homeUrl);
   };
-  const startNew = () => { setInput(''); setResult(null); navigateTo('scan'); };
+  const startNew = () => { setInput(''); setInputKind('message'); setResult(null); navigateTo('scan'); };
   const count = history.length;
   const riskCounts = useMemo(() => ({ critical: history.filter(x => x.level === 'critical').length, high: history.filter(x => x.level === 'high').length, medium: history.filter(x => x.level === 'medium').length }), [history]);
   return <main className="app">
@@ -163,16 +174,16 @@ function App() {
         <div className="scan-form glass-panel">
           <div className="message-mode-label"><MessageSquareText size={16}/> LINK &amp; MESSAGE THREAT ANALYSER</div>
           <label>PASTE LINK OR MESSAGE HERE</label>
-          <textarea value={input} onChange={e => setInput(e.target.value)} placeholder="Paste a URL or suspicious SMS / WhatsApp message…" rows={3}/>
-          <div className="input-meta"><span><LockKeyhole size={12}/> Submitted text is checked by the relevant ZXH scanner</span><span>{input.length} chars</span></div>
+          <textarea value={input} onChange={e => { const v=e.target.value; setInput(v); setInputKind(detectContentType(v)); setResult(null); }} onPaste={e => { const pasted=e.clipboardData.getData("text"); window.setTimeout(() => { if(pasted.trim()) { setInput(pasted); setInputKind(detectContentType(pasted)); void runScan(pasted); } }, 0); }} placeholder="Paste a URL or suspicious SMS / WhatsApp message…" rows={3}/>
+          <div className={"detected-type " + inputKind}><span className="detected-type-pulse"/><b>{inputKind === "url" ? "WEBSITE / URL DETECTED" : inputKind === "message_with_link" ? "TEXT MESSAGE + LINK DETECTED" : "TEXT MESSAGE DETECTED"}</b><small>{inputKind === "url" ? "Website reputation scanner selected" : inputKind === "message_with_link" ? "Message scanner selected • embedded link noticed" : "Message threat scanner selected"}</small></div><div className="input-meta"><span><LockKeyhole size={12}/> Auto-detection selects the correct scanner</span><span>{input.length} chars</span></div>
           <button className="scan-button" onClick={() => void runScan()} disabled={!input.trim() || scanning}>{scanning ? "SCANNING…" : "SCAN LINK / MESSAGE"} <ArrowRight size={17}/></button>
           {notice && <p className="notice">{notice}</p>}
         </div>
         {scanning && <div ref={radarRef} className="scan-progress-anchor"><RadarScanner/></div>}
         {result && <div className="result-area page-in">
           <div className="section-title"><h2>Threat Analysis Report</h2><span>JUST NOW</span></div>
-          <div className="result-card glass-panel">
-            <div className="result-signal"><div className="result-signal-icon"><ShieldCheck size={25}/></div><div><span>ZXH OFFICIAL • THREAT ANALYSIS</span><b>SCAN COMPLETED</b></div><i className={'result-level-dot ' + result.level}/></div><div className="scanned-target"><small>SCANNED TARGET</small><span>{result.value}</span></div>
+          {(result.level === "critical" || result.level === "high") && <div className="security-alert-overlay page-in" role="alert"><div className="alert-flash"><span>⚠</span></div><small>ZXH OFFICIAL • SECURITY SYSTEM</small><strong>THREAT ALERT!</strong><b>{result.level.toUpperCase()} RISK DETECTED</b><p>{result.findings.length} suspicious indicator(s) found. Do not open the link or share passwords, OTPs or payment details.</p><button onClick={() => document.querySelector(".result-card")?.scrollIntoView({behavior:"smooth",block:"start"})}>VIEW FULL REPORT ↓</button></div>}<div className="result-card glass-panel">
+            <div className="result-signal"><div className="result-signal-icon"><ShieldCheck size={25}/></div><div><span>ZXH OFFICIAL • THREAT ANALYSIS</span><b>SCAN COMPLETED</b></div><i className={'result-level-dot ' + result.level}/></div><div className="scanned-target"><small>{result.contentType === "url" ? "SCANNED WEBSITE / URL" : result.contentType === "message_with_link" ? "SCANNED TEXT MESSAGE • LINK FOUND" : "SCANNED TEXT MESSAGE"}</small><span>{result.value}</span><em className="content-type-chip">{result.contentType === "url" ? "URL SCAN" : result.contentType === "message_with_link" ? "MESSAGE + LINK SCAN" : "MESSAGE SCAN"}</em></div>
             <div className={'verdict ' + result.level}><span className="verdict-icon"><CircleAlert size={19}/></span><div><b>{result.verdict}</b><small>{result.level.toUpperCase()} RISK INDICATORS</small></div></div>
             <div className="finding-list">{result.findings.map((f,i) => <div className="finding" key={i}><span>•</span><div><b>{f.title}</b><p>{f.detail}</p></div></div>)}</div>
             {result.domainRegistration ? <div className="domain-intel"><b>DOMAIN REGISTRATION INTELLIGENCE</b><span><strong>{result.domainRegistration.domain}</strong></span>{result.domainRegistration.status === 'found' ? <><span>Registration: {result.domainRegistration.registeredAt ? new Date(result.domainRegistration.registeredAt).toLocaleDateString() : 'Date not published'}</span><span>Domain age: {typeof result.domainRegistration.ageDays === 'number' ? result.domainRegistration.ageDays + ' days' : 'Not disclosed'}</span>{result.domainRegistration.registrar ? <span>Registrar: {result.domainRegistration.registrar}</span> : null}</> : <span className="source-off">Registration details {result.domainRegistration.status === 'not_found' ? 'not found' : 'unavailable'} from RDAP.</span>}</div> : null}
