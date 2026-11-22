@@ -70,6 +70,38 @@ async function checkGoogleSafeBrowsing(url: string, key: string) {
   return Array.isArray(data.matches) && data.matches.length > 0;
 }
 
+
+type DomainRegistration = { domain: string; registeredAt?: string; ageDays?: number; registrar?: string; status: "found" | "not_found" | "unavailable" };
+function registrableDomain(host: string) {
+  const clean = host.toLowerCase().replace(/^www\./, "");
+  if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(clean) || clean.includes(":")) return "";
+  const parts = clean.split(".").filter(Boolean);
+  if (parts.length < 2) return "";
+  const twoLevelSuffixes = new Set(["co.uk","org.uk","com.au","net.au","co.nz","com.pk","com.br","co.in","co.za"]);
+  const suffix = parts.slice(-2).join(".");
+  return twoLevelSuffixes.has(suffix) && parts.length >= 3 ? parts.slice(-3).join(".") : suffix;
+}
+async function checkDomainRegistration(host: string): Promise<DomainRegistration> {
+  const domain = registrableDomain(host);
+  if (!domain) return { domain: host, status: "unavailable" };
+  try {
+    const response = await fetch("https://rdap.org/domain/" + encodeURIComponent(domain), {
+      headers: { Accept: "application/rdap+json", "User-Agent": "ZXH-Official-CyberGuard/1.0" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(7000)
+    });
+    if (response.status === 404) return { domain, status: "not_found" };
+    if (!response.ok) return { domain, status: "unavailable" };
+    const data: any = await response.json();
+    const event = Array.isArray(data.events) ? data.events.find((item: any) => item.eventAction === "registration") : undefined;
+    const registeredAt = typeof event?.eventDate === "string" ? event.eventDate : undefined;
+    const ageDays = registeredAt ? Math.max(0, Math.floor((Date.now() - new Date(registeredAt).getTime()) / 86400000)) : undefined;
+    const registrarEntity = Array.isArray(data.entities) ? data.entities.find((item: any) => Array.isArray(item.roles) && item.roles.includes("registrar")) : undefined;
+    const registrarValue = registrarEntity?.vcardArray?.[1]?.find((item: any) => item[0] === "fn")?.[3];
+    return { domain, registeredAt, ageDays: Number.isFinite(ageDays) ? ageDays : undefined, registrar: typeof registrarValue === "string" ? registrarValue : undefined, status: "found" };
+  } catch { return { domain, status: "unavailable" }; }
+}
+
 export default async function handler(req: any, res: any) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -81,6 +113,14 @@ export default async function handler(req: any, res: any) {
 
   const normalized = normalizeUrl(url);
   const findings = localUrlFindings(url);
+  const parsedTarget = new URL(url);
+  const domainRegistration = await checkDomainRegistration(parsedTarget.hostname);
+  if (domainRegistration.status === "found" && typeof domainRegistration.ageDays === "number" && domainRegistration.ageDays < 180) {
+    findings.push({ level: "medium", title: "Recently registered domain", detail: domainRegistration.domain + " was registered " + domainRegistration.ageDays + " days ago. New domains are not automatically malicious, but deserve extra verification." });
+  }
+  if (parsedTarget.protocol === "https:") {
+    findings.push({ level: "low", title: "HTTPS URL", detail: "The submitted address uses HTTPS. This indicates encrypted transport is requested; it does not establish that the site or its content is trustworthy." });
+  }
   let checkedSources = 0;
   const matchedSources: string[] = [];
   const checkedSourceNames: string[] = [];
@@ -146,18 +186,18 @@ export default async function handler(req: any, res: any) {
 
   if (matchedSources.length) {
     findings.unshift({ level: "critical", title: "Known threat intelligence match", detail: "This exact URL matched: " + matchedSources.join(", ") + ". Do not open it or enter information." });
-    return res.status(200).json({ status: "malicious", verdict: "Known malicious URL detected", level: "critical", findings, sources: matchedSources, checkedSources, checkedSourceNames, unavailableSources });
+    return res.status(200).json({ status: "malicious", verdict: "Known malicious URL detected", level: "critical", findings, sources: matchedSources, checkedSources, checkedSourceNames, unavailableSources, domainRegistration });
   }
 
   if (findings.some(f => f.level === "high" || f.level === "medium")) {
-    return res.status(200).json({ status: "suspicious", verdict: "Suspicious URL characteristics found", level: findings.some(f => f.level === "high") ? "high" : "medium", findings, sources: [], checkedSources, checkedSourceNames, unavailableSources });
+    return res.status(200).json({ status: "suspicious", verdict: "Suspicious URL characteristics found", level: findings.some(f => f.level === "high") ? "high" : "medium", findings, sources: [], checkedSources, checkedSourceNames, unavailableSources, domainRegistration });
   }
 
   if (checkedSources > 0) {
     findings.unshift({ level: "low", title: "No known threat-feed match", detail: "No match was found in the sources that responded (" + checkedSourceNames.join(", ") + "). " + (unavailableSources.length ? "Unavailable: " + unavailableSources.join(", ") + ". " : "") + "This is not a clean bill of health and does not prove the destination is safe." });
-    return res.status(200).json({ status: "not_listed", verdict: "No known threat match — not verified safe", level: "medium", findings, sources: [], checkedSources, checkedSourceNames, unavailableSources });
+    return res.status(200).json({ status: "not_listed", verdict: "No known threat match — not verified safe", level: "medium", findings, sources: [], checkedSources, checkedSourceNames, unavailableSources, domainRegistration });
   }
 
   findings.unshift({ level: "medium", title: "Threat-intelligence lookup unavailable", detail: "No external threat feed could be confirmed during this scan. Treat this URL as unverified and do not enter sensitive information." });
-  return res.status(200).json({ status: "unknown", verdict: "Reputation check incomplete", level: "medium", findings, sources: [], checkedSources: 0, checkedSourceNames, unavailableSources });
+  return res.status(200).json({ status: "unknown", verdict: "Reputation check incomplete", level: "medium", findings, sources: [], checkedSources: 0, checkedSourceNames, unavailableSources, domainRegistration });
 }
