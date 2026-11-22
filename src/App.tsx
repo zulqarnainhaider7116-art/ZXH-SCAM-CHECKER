@@ -122,7 +122,7 @@ function App() {
     } finally { setScanning(false); }
   };
   useEffect(() => {
-    if (screen !== 'scan' || !input.trim() || input.trim().length < 8 || scanning || result?.value === input.trim()) return;
+    if (screen !== 'scan' || !input.trim() || input.trim().length < 8 || scanning || (result && (result.value === input.trim() || (result.contentType === 'url' && result.value === 'https://' + input.trim())))) return;
     const timer = window.setTimeout(() => { void runScan(input); }, 1200);
     return () => window.clearTimeout(timer);
   }, [input, screen, scanning, result]);
