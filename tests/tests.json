@@ -1,0 +1,83 @@
+[
+  {
+    "name": "Welcome screen enters the dashboard",
+    "sanity": true,
+    "viewport": "mobile",
+    "covers": [
+      "welcome screen navigation",
+      "mobile visual layout"
+    ],
+    "description": "Verifies the screenshot-inspired welcome screen leads to the separate dashboard view.",
+    "steps": [
+      "Open the welcome screen",
+      "Tap the circular arrow button",
+      "Confirm the security dashboard and bottom navigation appear"
+    ],
+    "expected": "The dashboard opens with the scanned-links gauge, risk tiles, summary rows and navigation."
+  },
+  {
+    "name": "Dashboard opens the link scanner and creates a result",
+    "viewport": "mobile",
+    "covers": [
+      "dashboard to scanner navigation",
+      "link scanning",
+      "result report"
+    ],
+    "description": "Verifies a suspicious shortened link produces a visible scan result in the matching dark neon interface.",
+    "steps": [
+      "Open the dashboard",
+      "Tap Scan in the bottom navigation",
+      "Paste https://bit.ly/example",
+      "Tap SCAN NOW"
+    ],
+    "expected": "The Link Scan Result section appears with a shortened-link warning and risk indicator."
+  },
+  {
+    "name": "Message scan flags credential requests",
+    "viewport": "desktop",
+    "covers": [
+      "message scan mode",
+      "credential warning detection"
+    ],
+    "description": "Verifies a message asking for an OTP and password is identified as a critical warning.",
+    "steps": [
+      "Open the scanner",
+      "Choose Message mode",
+      "Paste a message asking for an OTP and password",
+      "Tap SCAN NOW"
+    ],
+    "expected": "The result displays a critical sensitive-information warning."
+  },
+  {
+    "name": "Empty scan input is blocked",
+    "viewport": "mobile",
+    "covers": [
+      "empty input validation",
+      "scan button guardrail"
+    ],
+    "description": "Verifies scanning cannot start until a link or message is entered.",
+    "steps": [
+      "Open the scanner",
+      "Leave the text field empty",
+      "Inspect the SCAN NOW button"
+    ],
+    "expected": "The scan button is disabled and no result is generated."
+  },
+  {
+    "name": "History and settings navigation work",
+    "viewport": "mobile",
+    "covers": [
+      "scan history view",
+      "settings view",
+      "bottom navigation"
+    ],
+    "description": "Verifies the remaining navigation destinations open their own separate views.",
+    "steps": [
+      "Tap History in bottom navigation",
+      "Confirm the empty history state is visible",
+      "Tap Settings",
+      "Confirm privacy and security information appears"
+    ],
+    "expected": "History and Settings each display their own page rather than being combined into the dashboard."
+  }
+]
