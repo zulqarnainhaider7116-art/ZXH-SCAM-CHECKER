@@ -33,11 +33,11 @@ function inspect(value: string): Result {
 
 function detectContentType(value: string): 'url' | 'message' | 'message_with_link' {
   const text = value.trim();
-  const urlPattern = /(?:https?:\\/\\/|www\\.)[^\\s]+|\\b[a-z0-9-]+(?:\\.[a-z0-9-]+)+(?:\\/[^\\s]*)?/i;
-  if (!urlPattern.test(text)) return 'message';
+  const urlPattern = /(https?:[/]{2}|www[.])[^ ]+|[a-z0-9-]+[.][a-z0-9-]+(?:[.][a-z0-9-]+)*(?:[/][^ ]*)?/i;
   const match = text.match(urlPattern)?.[0] || '';
-  const isOnlyUrl = text.replace(match, '').replace(/[\\s.,!?;:()[\\]{}<>"']/g, '') === '';
-  return isOnlyUrl ? 'url' : 'message_with_link';
+  if (!match) return 'message';
+  const remainder = text.replace(match, '').replace(/[ .,!?;:()[\]{}<>"']/g, '');
+  return remainder === '' ? 'url' : 'message_with_link';
 }
 
 function Wave({ className = '' }: { className?: string }) {
