@@ -121,6 +121,11 @@ function App() {
       setNotice(error instanceof Error ? error.message : 'Could not reach scanner.');
     } finally { setScanning(false); }
   };
+  useEffect(() => {
+    if (screen !== 'scan' || !input.trim() || input.trim().length < 8 || scanning || result?.value === input.trim()) return;
+    const timer = window.setTimeout(() => { void runScan(input); }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [input, screen, scanning, result]);
   const runHomeUrlScan = () => {
     if (!homeUrl.trim()) { setNotice('Paste a URL first.'); return; }
     setInput(homeUrl.trim()); setResult(null); navigateTo('scan'); void runScan(homeUrl);
@@ -174,7 +179,7 @@ function App() {
         <div className="scan-form glass-panel">
           <div className="message-mode-label"><MessageSquareText size={16}/> LINK &amp; MESSAGE THREAT ANALYSER</div>
           <label>PASTE LINK OR MESSAGE HERE</label>
-          <textarea value={input} onChange={e => { const v=e.target.value; setInput(v); setInputKind(detectContentType(v)); setResult(null); }} onPaste={e => { const pasted=e.clipboardData.getData("text"); window.setTimeout(() => { if(pasted.trim()) { setInput(pasted); setInputKind(detectContentType(pasted)); void runScan(pasted); } }, 0); }} placeholder="Paste a URL or suspicious SMS / WhatsApp message…" rows={3}/>
+          <textarea value={input} onChange={e => { const v=e.target.value; setInput(v); setInputKind(detectContentType(v)); setResult(null); }} placeholder="Paste a URL or suspicious SMS / WhatsApp message…" rows={3}/>
           <div className={"detected-type " + inputKind}><span className="detected-type-pulse"/><b>{inputKind === "url" ? "WEBSITE / URL DETECTED" : inputKind === "message_with_link" ? "TEXT MESSAGE + LINK DETECTED" : "TEXT MESSAGE DETECTED"}</b><small>{inputKind === "url" ? "Website reputation scanner selected" : inputKind === "message_with_link" ? "Message scanner selected • embedded link noticed" : "Message threat scanner selected"}</small></div><div className="input-meta"><span><LockKeyhole size={12}/> Auto-detection selects the correct scanner</span><span>{input.length} chars</span></div>
           <button className="scan-button" onClick={() => void runScan()} disabled={!input.trim() || scanning}>{scanning ? "SCANNING…" : "SCAN LINK / MESSAGE"} <ArrowRight size={17}/></button>
           {notice && <p className="notice">{notice}</p>}
