@@ -159,6 +159,16 @@ function App() {
           if (pageData.pageAnalysis) {
             pageAnalysis = pageData.pageAnalysis as PageAnalysis;
             if (Array.isArray(pageAnalysis.findings)) findings.push(...pageAnalysis.findings);
+            // Check the destination after redirects as well as the submitted URL.
+            if (pageAnalysis.finalUrl && pageAnalysis.finalUrl !== scanTarget) {
+              try {
+                const redirectedResponse = await fetch('/api/check-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: pageAnalysis.finalUrl }) });
+                const redirectedData = await redirectedResponse.json();
+                if (redirectedResponse.ok && Array.isArray(redirectedData.findings)) findings.push(...redirectedData.findings);
+              } catch {
+                findings.push({ level: 'low', title: 'Redirect destination reputation unavailable', detail: 'The redirected page was inspected, but its threat-feed lookup could not be completed.' });
+              }
+            }
           }
         } catch { findings.push({ level: 'low', title: 'Page content inspection unavailable', detail: 'Threat reputation checks completed separately, but page HTML could not be inspected.' }); }
         const statusLevel: Finding['level'] = data.status === 'malicious' ? 'critical' : findings.some(f => f.level === 'critical') ? 'critical' : findings.some(f => f.level === 'high') ? 'high' : findings.some(f => f.level === 'medium') ? 'medium' : 'low';
@@ -293,6 +303,7 @@ function App() {
             <div className="result-signal"><div className="result-signal-icon"><ShieldCheck size={25}/></div><div><span>ZXH OFFICIAL • THREAT ANALYSIS</span><b>SCAN COMPLETED</b></div><i className={'result-level-dot ' + result.level}/></div><div className="scanned-target"><small>{result.contentType === "url" ? "SCANNED WEBSITE / URL" : result.contentType === "message_with_link" ? "SCANNED TEXT MESSAGE • LINK FOUND" : "SCANNED TEXT MESSAGE"}</small><span>{result.value}</span><em className="content-type-chip">{result.contentType === "url" ? "URL SCAN" : result.contentType === "message_with_link" ? "MESSAGE + LINK SCAN" : "MESSAGE SCAN"}</em></div>
             {result.pageAnalysis && <div className="page-intel">
               <div className="page-intel-head"><b>DEEP WEBSITE CONTENT INSPECTION</b><span>{result.pageAnalysis.status === 'inspected' ? 'HTML INSPECTED' : 'PARTIAL CHECK'}</span></div>
+              {result.pageAnalysis.finalUrl && result.pageAnalysis.finalUrl !== result.value && <div className="page-intel-field"><small>FINAL REDIRECT DESTINATION</small><strong>{result.pageAnalysis.finalUrl}</strong></div>}
               {result.pageAnalysis.title && <div className="page-intel-field"><small>PAGE TITLE</small><strong>{result.pageAnalysis.title}</strong></div>}
               {result.pageAnalysis.description && <div className="page-intel-field"><small>META DESCRIPTION</small><p>{result.pageAnalysis.description}</p></div>}
               {!!result.pageAnalysis.keywords?.length && <div className="page-intel-field"><small>META KEYWORDS</small><p>{result.pageAnalysis.keywords.join(' • ')}</p></div>}
