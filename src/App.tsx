@@ -133,7 +133,7 @@ function App() {
           <div className="mode-switch"><button className={mode === 'link' ? 'selected' : ''} onClick={() => setMode('link')}><Link2 size={15}/> Link</button><button className={mode === 'message' ? 'selected' : ''} onClick={() => setMode('message')}><MessageSquareText size={15}/> Message</button></div>
           <label>{mode === 'link' ? 'SCAN LINK HERE' : 'PASTE MESSAGE HERE'}</label>
           <textarea value={input} onChange={e => setInput(e.target.value)} placeholder={mode === 'link' ? 'https://example.com/verify' : 'Paste suspicious SMS or WhatsApp message…'} rows={3}/>
-          <div className="input-meta"><span><LockKeyhole size={12}/> Processed on this device</span><span>{input.length} chars</span></div>
+          <div className="input-meta"><span><LockKeyhole size={12}/> {mode === "link" ? "URL checked via threat feeds" : "Processed on this device"}</span><span>{input.length} chars</span></div>
           <button className="scan-button" onClick={runScan} disabled={!input.trim() || scanning}>{scanning ? "CHECKING THREAT FEEDS…" : "SCAN NOW"} <ArrowRight size={17}/></button>
           {notice && <p className="notice">{notice}</p>}
         </div>
