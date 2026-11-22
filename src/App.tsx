@@ -7,7 +7,7 @@ import {
 
 type Screen = 'welcome' | 'home' | 'scan' | 'history' | 'settings';
 type Finding = { level: 'critical' | 'high' | 'medium' | 'low'; title: string; detail: string };
-type Result = { verdict: string; level: Finding['level']; findings: Finding[]; value: string; checkedSources?: string[]; unavailableSources?: string[] };
+type Result = { verdict: string; level: Finding['level']; findings: Finding[]; value: string; checkedSources?: string[]; unavailableSources?: string[]; domainRegistration?: { domain: string; registeredAt?: string; ageDays?: number; registrar?: string; status: 'found' | 'not_found' | 'unavailable' } };
 
 function inspect(value: string): Result {
   const text = value.trim();
@@ -75,8 +75,9 @@ function App() {
   const [input, setInput] = useState('');
   const [homeUrl, setHomeUrl] = useState('');
   const [result, setResult] = useState<Result | null>(null);
-  const [history, setHistory] = useState<Result[]>([]);
+  const [history, setHistory] = useState<Result[]>(() => { try { const saved = localStorage.getItem('zxh-cyberguard-history-v1'); return saved ? (JSON.parse(saved) as Result[]).slice(0, 30) : []; } catch { return []; } });
   const [notice, setNotice] = useState('');
+  useEffect(() => { try { localStorage.setItem('zxh-cyberguard-history-v1', JSON.stringify(history.slice(0, 30))); } catch { /* storage may be unavailable */ } }, [history]);
   const [scanning, setScanning] = useState(false);
   useEffect(() => {
     if (!scanning || screen !== 'scan') return;
@@ -100,7 +101,7 @@ function App() {
         const statusLevel: Finding['level'] = data.status === 'malicious' ? 'critical' : data.status === 'suspicious' ? (data.level === 'high' ? 'high' : 'medium') : 'medium';
         const verdict = data.status === 'malicious' ? 'Known malicious URL detected' : data.status === 'suspicious' ? 'Suspicious URL characteristics found' : data.status === 'not_listed' ? 'No known threat match — not verified safe' : 'Reputation check incomplete';
         if (!findings.length) findings.push({ level: statusLevel, title: 'URL review completed', detail: 'Review the destination carefully. No automated scan can guarantee a website is safe.' });
-        next = { value: scanTarget, level: statusLevel, verdict, findings, checkedSources: Array.isArray(data.checkedSourceNames) ? data.checkedSourceNames : [], unavailableSources: Array.isArray(data.unavailableSources) ? data.unavailableSources : [] };
+        next = { value: scanTarget, level: statusLevel, verdict, findings, checkedSources: Array.isArray(data.checkedSourceNames) ? data.checkedSourceNames : [], unavailableSources: Array.isArray(data.unavailableSources) ? data.unavailableSources : [], domainRegistration: data.domainRegistration };
       } else { next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted }; }
       await minimumScanTime;
       setResult(next); setHistory(old => [next, ...old].slice(0, 8)); setNotice('');
@@ -174,6 +175,7 @@ function App() {
             <div className="result-signal"><div className="result-signal-icon"><ShieldCheck size={25}/></div><div><span>ZXH OFFICIAL • THREAT ANALYSIS</span><b>SCAN COMPLETED</b></div><i className={'result-level-dot ' + result.level}/></div><div className="scanned-target"><small>SCANNED TARGET</small><span>{result.value}</span></div>
             <div className={'verdict ' + result.level}><span className="verdict-icon"><CircleAlert size={19}/></span><div><b>{result.verdict}</b><small>{result.level.toUpperCase()} RISK INDICATORS</small></div></div>
             <div className="finding-list">{result.findings.map((f,i) => <div className="finding" key={i}><span>•</span><div><b>{f.title}</b><p>{f.detail}</p></div></div>)}</div>
+            {result.domainRegistration ? <div className="domain-intel"><b>DOMAIN REGISTRATION INTELLIGENCE</b><span><strong>{result.domainRegistration.domain}</strong></span>{result.domainRegistration.status === 'found' ? <><span>Registration: {result.domainRegistration.registeredAt ? new Date(result.domainRegistration.registeredAt).toLocaleDateString() : 'Date not published'}</span><span>Domain age: {typeof result.domainRegistration.ageDays === 'number' ? result.domainRegistration.ageDays + ' days' : 'Not disclosed'}</span>{result.domainRegistration.registrar ? <span>Registrar: {result.domainRegistration.registrar}</span> : null}</> : <span className="source-off">Registration details {result.domainRegistration.status === 'not_found' ? 'not found' : 'unavailable'} from RDAP.</span>}</div> : null}
             {(result.checkedSources?.length || result.unavailableSources?.length) ? <div className="source-coverage"><b>THREAT FEED COVERAGE</b>{result.checkedSources?.map(name => <span className="source-ok" key={name}>✓ {name} — checked</span>)}{result.unavailableSources?.map(name => <span className="source-off" key={name}>! {name} — unavailable</span>)}</div> : null}
             <button className="scan-button" onClick={startNew}>CHECK AGAIN <ArrowRight size={17}/></button>
           </div>
