@@ -77,3 +77,6 @@
 .home-url-input::placeholder{color:#567584}
 .home-url-input:focus{border-color:rgba(0,218,255,.6);box-shadow:0 0 0 3px rgba(0,190,255,.08)}
 .message-mode-label{display:flex;align-items:center;gap:9px;color:#9cefe1;font:600 9px Orbitron;letter-spacing:1.3px;margin:2px 0 18px;padding:8px 10px;border-radius:12px;background:rgba(0,177,160,.1);border:1px solid rgba(88,223,255,.1)}
+
+.scanner-back{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;margin:0 0 8px;border:1px solid rgba(116,212,235,.16);border-radius:12px;background:rgba(5,24,36,.68);color:#9fd6e5;font:600 8px Orbitron;letter-spacing:1.2px}
+.home-link-box{margin-top:7px}
