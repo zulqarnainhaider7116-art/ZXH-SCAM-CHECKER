@@ -62,7 +62,7 @@ function App() {
     const submitted = value.trim();
     if (!submitted) { setNotice('Paste a message or URL first.'); return; }
     setScanning(true); setNotice('');
-    const isUrl = /^https?:\\/\\//i.test(submitted);
+    const isUrl = /^https?:\/\//i.test(submitted);
     try {
       const response = await fetch(isUrl ? '/api/check-url' : '/api/check-message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(isUrl ? { url: submitted } : { message: submitted }) });
       const data = await response.json();
@@ -126,6 +126,7 @@ function App() {
         </div>
       </section>}
       {screen === 'scan' && <section className="scan-page page-in">
+        <button className="scanner-back" onClick={() => window.history.state?.zxhScreen ? window.history.back() : navigateTo('home')}><ArrowLeft size={15}/> BACK</button>
         <div className="scan-heading"><div className="scan-emblem"><ShieldCheck size={27}/></div><h1>Security Scanner</h1><p>Analyse a suspicious link or message</p></div>
         <Wave className="scan-wave"/>
         <div className="scan-form glass-panel">
