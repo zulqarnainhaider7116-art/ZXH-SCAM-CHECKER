@@ -8,10 +8,10 @@
 ## Features
 - Welcome, dashboard, scanner, history and settings screens.
 - Preserves the dark navy / emerald / cyan CyberGuard visual identity.
-- Local pattern analysis for suspicious messages (message text stays in the browser).
+- Backend message pattern analysis through POST /api/check-message (message content is processed in memory and not saved).
 - Live URL reputation lookup through the OpenPhish community feed.
 - Optional URLhaus lookup when `URLHAUS_AUTH_KEY` is configured.
-- Vercel serverless endpoint at `POST /api/check-url`.
+- Vercel serverless endpoints at POST /api/check-url and POST /api/check-message.
 
 ## Tech stack
 React, TypeScript, Vite, Lucide React and Vercel Functions.
