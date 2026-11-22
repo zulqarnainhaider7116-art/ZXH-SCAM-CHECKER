@@ -209,3 +209,10 @@ body{overflow-x:hidden}
 .source-coverage>span{font-size:10px;line-height:1.5;overflow-wrap:anywhere}
 .source-ok{color:#65dcb1}.source-off{color:#ffbd78}
 @media(min-width:700px){.source-coverage{padding:16px 18px}.source-coverage>b{font-size:9px}.source-coverage>span{font-size:12px}}
+
+
+/* Domain registration intelligence */
+.domain-intel{display:grid;gap:7px;margin:10px 0 14px;padding:14px;border:1px solid rgba(111,205,231,.17);border-radius:13px;background:rgba(2,12,20,.5);color:#9ab6c2;font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.domain-intel>b{font:600 8px Orbitron,sans-serif;letter-spacing:1.1px;color:#9ac8d7;margin-bottom:2px}
+.domain-intel strong{color:#e2f5fb;font-size:12px}
+@media(min-width:700px){.domain-intel{padding:17px 19px;font-size:12px}.domain-intel>b{font-size:9px}.domain-intel strong{font-size:14px}}
