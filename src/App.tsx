@@ -31,6 +31,13 @@ function inspect(value: string): Result {
   return { verdict: level === 'critical' || level === 'high' ? 'Warning — suspicious signs found' : level === 'medium' ? 'Review carefully' : 'No obvious warning found', level, findings, value };
 }
 
+function extractFirstUrl(value: string): string | null {
+  const match = value.match(/(?:https?:\/\/|www\.)[^\s<>"']+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/[^\s<>"']*)?/i)?.[0];
+  if (!match) return null;
+  const cleaned = match.replace(/[),.!?;:]+$/, '');
+  return /^https?:\/\//i.test(cleaned) ? cleaned : 'https://' + cleaned;
+}
+
 function detectContentType(value: string): 'url' | 'message' | 'message_with_link' {
   const text = value.trim();
   const urlPattern = /(https?:[/]{2}|www[.])[^ ]+|[a-z0-9-]+[.][a-z0-9-]+(?:[.][a-z0-9-]+)*(?:[/][^ ]*)?/i;
@@ -68,6 +75,36 @@ function RadarScanner() {
 
 function App() {
   const [screen, setScreen] = useState<Screen>('welcome');
+  // Native browser install prompt: never replace it with a custom install button/modal.
+  useEffect(() => {
+    let deferred: any = null;
+    let timer: number | undefined;
+    const startedAt = Date.now();
+    const isInstalled = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+    if (isInstalled()) return;
+    const onInstallable = (event: Event) => {
+      const promptEvent = event as Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+      if (isInstalled()) return;
+      (promptEvent as any).preventDefault?.();
+      deferred = promptEvent;
+      if (timer !== undefined) window.clearTimeout(timer);
+      const wait = Math.max(0, 5000 - (Date.now() - startedAt));
+      timer = window.setTimeout(async () => {
+        if (!deferred || isInstalled()) return;
+        const prompt = deferred;
+        deferred = null;
+        try { await prompt.prompt(); await prompt.userChoice; } catch (error) { console.info('ZXH native install prompt was not shown:', error); }
+      }, wait);
+    };
+    const onInstalled = () => { deferred = null; if (timer !== undefined) window.clearTimeout(timer); };
+    window.addEventListener('beforeinstallprompt', onInstallable as EventListener);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onInstallable as EventListener);
+      window.removeEventListener('appinstalled', onInstalled);
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, []);
   const radarRef = useRef<HTMLDivElement | null>(null);
   const navigateTo = (next: Screen) => {
     if (next !== screen) window.history.pushState({ zxhScreen: next }, '', '#' + next);
@@ -128,7 +165,46 @@ function App() {
         const verdict = data.status === 'malicious' ? 'Known malicious URL detected' : statusLevel === 'critical' ? 'Critical content indicators detected' : statusLevel === 'high' ? 'High-risk website content detected' : statusLevel === 'medium' ? 'Suspicious website indicators found' : data.status === 'not_listed' ? 'No known threat match — not verified safe' : 'Website review completed — not verified safe';
         if (!findings.length) findings.push({ level: 'low', title: 'URL review completed', detail: 'No obvious indicator was found in the checks that completed. This does not prove the destination is safe.' });
         next = { value: scanTarget, contentType: 'url', level: statusLevel, verdict, findings, pageAnalysis, checkedSources: Array.isArray(data.checkedSourceNames) ? data.checkedSourceNames : [], unavailableSources: Array.isArray(data.unavailableSources) ? data.unavailableSources : [], domainRegistration: data.domainRegistration };
-      } else { next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted, contentType: detectedKind }; }
+      } else {
+        next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted, contentType: detectedKind };
+        // A message containing a URL gets BOTH message-pattern analysis and URL reputation/page inspection.
+        if (detectedKind === 'message_with_link') {
+          const embeddedUrl = extractFirstUrl(submitted);
+          if (embeddedUrl) {
+            try {
+              const urlResponse = await fetch('/api/check-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: embeddedUrl }) });
+              const urlData = await urlResponse.json();
+              if (urlResponse.ok) {
+                const combinedFindings: Finding[] = [...next.findings, ...(Array.isArray(urlData.findings) ? urlData.findings : [])];
+                let pageAnalysis: PageAnalysis | undefined;
+                try {
+                  const pageResponse = await fetch('/api/inspect-page', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: embeddedUrl }) });
+                  const pageData = await pageResponse.json();
+                  if (pageData.pageAnalysis) {
+                    pageAnalysis = pageData.pageAnalysis as PageAnalysis;
+                    if (Array.isArray(pageAnalysis.findings)) combinedFindings.push(...pageAnalysis.findings);
+                  }
+                } catch {
+                  combinedFindings.push({ level: 'low', title: 'Embedded link content inspection unavailable', detail: 'The message was analysed, but the linked page could not be inspected.' });
+                }
+                const level: Finding['level'] = urlData.status === 'malicious' || combinedFindings.some(f => f.level === 'critical') ? 'critical' : combinedFindings.some(f => f.level === 'high') ? 'high' : combinedFindings.some(f => f.level === 'medium') ? 'medium' : 'low';
+                next = {
+                  ...next,
+                  level,
+                  verdict: urlData.status === 'malicious' ? 'Known malicious link found in message' : level === 'critical' ? 'Critical threat indicators found in message and link' : level === 'high' ? 'High-risk message or embedded link detected' : level === 'medium' ? 'Review this message and its embedded link carefully' : next.verdict,
+                  findings: combinedFindings,
+                  pageAnalysis,
+                  checkedSources: Array.isArray(urlData.checkedSourceNames) ? urlData.checkedSourceNames : [],
+                  unavailableSources: Array.isArray(urlData.unavailableSources) ? urlData.unavailableSources : [],
+                  domainRegistration: urlData.domainRegistration
+                };
+              }
+            } catch {
+              next.findings.push({ level: 'low', title: 'Embedded URL reputation check unavailable', detail: 'Message patterns were checked, but external link reputation could not be confirmed.' });
+            }
+          }
+        }
+      }
       await minimumScanTime;
       setResult(next); setAlertDismissed(false); setHistory(old => [next, ...old].slice(0, 30)); setNotice('');
     } catch (error) {
@@ -159,7 +235,7 @@ function App() {
     {screen === 'welcome' && <section className="welcome-screen">
       <div className="welcome-topline"><span>ZXH OFFICIAL</span></div>
       <div className="welcome-visual"><div className="umbrella">◈</div><div className="hero-shield"><ShieldCheck size={36}/></div><Wave/></div>
-      <div className="welcome-copy"><div className="micro-label">WELCOME TO ZXH OFFICIAL • DIGITAL PROTECTION SYSTEM</div><h1>CyberGuard<br/><em>Phishing Attack Shield</em></h1><p>Stay protected. Spot suspicious links and messages before they become a threat.</p></div>
+      <div className="welcome-copy"><div className="micro-label">ZXH OFFICIAL • SECURITY GUARD SHIELD • MULTI-LAYER DEFENCE</div><h1>CyberGuard<br/><em>Phishing Attack Shield</em></h1><p>Stay protected. Spot suspicious links and messages before they become a threat.</p></div>
       <button className="round-start" onClick={() => navigateTo('home')} aria-label="Enter CyberGuard"><ArrowRight/></button>
       <div className="welcome-credit">POWERED BY <b>ZXH OFFICIAL</b><small>CREATED BY ZULQARNAIN X HAIDER</small></div>
     </section>}
@@ -170,6 +246,11 @@ function App() {
       </header>
       {screen === 'home' && <section className="dashboard page-in">
         <div className="greeting"><div><small>WELCOME BACK</small><h1>Cyber Defender</h1><p>Your digital safety overview</p></div><div className="avatar"><ShieldCheck/></div></div>
+        <div className="guard-status-panel">
+          <div className="guard-status-emblem"><ShieldCheck size={34}/><i className="guard-orbit orbit-one"/><i className="guard-orbit orbit-two"/></div>
+          <div className="guard-status-copy"><small>𖤍 ZXH SECURITY GUARD 𖤍</small><b>ACTIVE DEFENCE ONLINE</b><span>URL REPUTATION • PAGE INTELLIGENCE • MESSAGE ANALYSIS</span></div>
+          <span className="guard-live"><i/> LIVE</span>
+        </div>
         <div className="home-link-box glass-panel">
           <div className="home-link-heading"><span className="summary-icon"><Link2/></span><div><b>Check a suspicious link</b><small>Paste a URL to scan for known threats</small></div></div>
           <label htmlFor="home-url">PASTE URL TO CHECK</label>
