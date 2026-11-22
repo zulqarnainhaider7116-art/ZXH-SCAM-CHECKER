@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Bell, Check, ChevronRight, CircleAlert, Clock3,
   Globe2, History, Home, Link2, LockKeyhole, MessageSquareText, ScanLine,
@@ -59,6 +59,7 @@ function RadarScanner() {
 
 function App() {
   const [screen, setScreen] = useState<Screen>('welcome');
+  const radarRef = useRef<HTMLDivElement | null>(null);
   const navigateTo = (next: Screen) => {
     if (next !== screen) window.history.pushState({ zxhScreen: next }, '', '#' + next);
     setScreen(next);
@@ -71,6 +72,11 @@ function App() {
     window.addEventListener('popstate', handleBack);
     return () => window.removeEventListener('popstate', handleBack);
   }, []);
+  useEffect(() => {
+    if (!scanning || screen !== 'scan') return;
+    const timer = window.setTimeout(() => radarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    return () => window.clearTimeout(timer);
+  }, [scanning, screen]);
   const [input, setInput] = useState('');
   const [homeUrl, setHomeUrl] = useState('');
   const [result, setResult] = useState<Result | null>(null);
@@ -81,10 +87,11 @@ function App() {
     const submitted = value.trim();
     if (!submitted) { setNotice('Paste a message or URL first.'); return; }
     setScanning(true); setResult(null); setNotice('');
-    const isUrl = /^https?:\/\//i.test(submitted);
+    const isUrl = /^(https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:[/:?#].*)?$/i.test(submitted);
+    const scanTarget = isUrl && !/^https?:\/\//i.test(submitted) ? 'https://' + submitted : submitted;
     const minimumScanTime = new Promise(resolve => window.setTimeout(resolve, 6500));
     try {
-      const response = await fetch(isUrl ? '/api/check-url' : '/api/check-message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(isUrl ? { url: submitted } : { message: submitted }) });
+      const response = await fetch(isUrl ? '/api/check-url' : '/api/check-message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(isUrl ? { url: scanTarget } : { message: submitted }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || (isUrl ? 'URL check failed.' : 'Message scan failed.'));
       let next: Result;
@@ -93,7 +100,7 @@ function App() {
         if (data.status === 'malicious') findings.unshift({ level: 'critical', title: 'Threat intelligence match', detail: 'This URL matched a known malicious URL feed. Do not open it.' });
         else if (data.status === 'not_listed') findings.unshift({ level: 'low', title: 'No threat-feed match found', detail: 'The checked feeds did not list this URL. This is not proof that it is safe.' });
         else findings.unshift({ level: 'medium', title: 'Live reputation lookup unavailable', detail: data.message || 'The external threat feed could not be checked.' });
-        next = { value: submitted, level: data.status === 'malicious' ? 'critical' : data.status === 'not_listed' ? 'low' : 'medium', verdict: data.status === 'malicious' ? 'Known malicious URL detected' : data.status === 'not_listed' ? 'No match found — stay cautious' : 'Reputation check incomplete', findings };
+        next = { value: scanTarget, level: data.status === 'malicious' ? 'critical' : data.status === 'not_listed' ? 'low' : 'medium', verdict: data.status === 'malicious' ? 'Known malicious URL detected' : data.status === 'not_listed' ? 'No match found — stay cautious' : 'Reputation check incomplete', findings };
       } else { next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted }; }
       await minimumScanTime;
       setResult(next); setHistory(old => [next, ...old].slice(0, 8)); setNotice('');
@@ -157,10 +164,10 @@ function App() {
           <label>PASTE LINK OR MESSAGE HERE</label>
           <textarea value={input} onChange={e => setInput(e.target.value)} placeholder="Paste a URL or suspicious SMS / WhatsApp message…" rows={3}/>
           <div className="input-meta"><span><LockKeyhole size={12}/> Submitted text is checked by the relevant ZXH scanner</span><span>{input.length} chars</span></div>
-          <button className="scan-button" onClick={runScan} disabled={!input.trim() || scanning}>{scanning ? "SCANNING…" : "SCAN LINK / MESSAGE"} <ArrowRight size={17}/></button>
+          <button className="scan-button" onClick={() => void runScan()} disabled={!input.trim() || scanning}>{scanning ? "SCANNING…" : "SCAN LINK / MESSAGE"} <ArrowRight size={17}/></button>
           {notice && <p className="notice">{notice}</p>}
         </div>
-        {scanning && <RadarScanner/>}
+        {scanning && <div ref={radarRef} className="scan-progress-anchor"><RadarScanner/></div>}
         {result && <div className="result-area page-in">
           <div className="section-title"><h2>Threat Analysis Report</h2><span>JUST NOW</span></div>
           <div className="result-card glass-panel">
