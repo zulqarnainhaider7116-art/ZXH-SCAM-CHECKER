@@ -42,51 +42,42 @@ function App() {
   const [screen, setScreen] = useState<Screen>('welcome');
   const [mode, setMode] = useState<'link' | 'message'>('link');
   const [input, setInput] = useState('');
+  const [homeUrl, setHomeUrl] = useState('');
+  const [homeResult, setHomeResult] = useState<Result | null>(null);
+  const [homeScanning, setHomeScanning] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [history, setHistory] = useState<Result[]>([]);
   const [notice, setNotice] = useState('');
   const [scanning, setScanning] = useState(false);
   const runScan = async () => {
-    if (!input.trim()) { setNotice('Paste a link or message first.'); return; }
+    if (!input.trim()) { setNotice('Paste a message first.'); return; }
     setScanning(true);
-    let next = inspect(input);
-    if (mode === 'link') {
-      try {
-        const response = await fetch('/api/check-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: input.trim() })
-        });
-        const data = await response.json();
-        if (data.status === 'malicious') {
-          next = {
-            ...next,
-            level: 'critical',
-            verdict: 'Threat intelligence match — malicious URL listed',
-            findings: [{ level: 'critical', title: 'Known phishing / malware URL', detail: 'This exact URL was found in an external threat-intelligence feed. Do not open it.' }, ...next.findings]
-          };
-        } else if (data.status === 'not_listed') {
-          next = {
-            ...next,
-            findings: [{ level: 'low', title: 'Threat feed lookup: no match', detail: 'No match was found in the checked feed. This does NOT prove the URL is safe.' }, ...next.findings]
-          };
-        } else {
-          next = {
-            ...next,
-            findings: [{ level: 'medium', title: 'Live reputation lookup unavailable', detail: data.message || 'External threat feeds could not be reached. Showing local pattern checks only.' }, ...next.findings]
-          };
-        }
-      } catch {
-        next = {
-          ...next,
-          findings: [{ level: 'medium', title: 'Live reputation lookup unavailable', detail: 'Could not reach the threat-intelligence service. Showing local pattern checks only.' }, ...next.findings]
-        };
-      }
-    }
-    setResult(next);
-    setHistory(old => [next, ...old].slice(0, 8));
-    setNotice('');
-    setScanning(false);
+    try {
+      const response = await fetch('/api/check-message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: input.trim() }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Message scan failed.');
+      const next: Result = { verdict: data.verdict, level: data.level, findings: data.findings, value: input.trim() };
+      setResult(next); setHistory(old => [next, ...old].slice(0, 8)); setNotice('');
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not reach message scanner.'); }
+    finally { setScanning(false); }
+  };
+  const runHomeUrlScan = async () => {
+    if (!homeUrl.trim()) { setNotice('Paste a URL first.'); return; }
+    setHomeScanning(true); setNotice('');
+    try {
+      const response = await fetch('/api/check-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: homeUrl.trim() }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'URL check failed.');
+      const local = inspect(homeUrl.trim());
+      const findings: Finding[] = Array.isArray(data.findings) ? [...data.findings] : [];
+      if (data.status === 'malicious') findings.unshift({ level: 'critical', title: 'Threat intelligence match', detail: 'This URL matched a known malicious URL feed. Do not open it.' });
+      else if (data.status === 'not_listed') findings.unshift({ level: 'low', title: 'No threat-feed match found', detail: 'The checked feeds did not list this URL. This is not proof that it is safe.' });
+      else findings.unshift({ level: 'medium', title: 'Live reputation lookup unavailable', detail: data.message || 'The external threat feed could not be checked.' });
+      findings.push(...local.findings);
+      const next: Result = { value: homeUrl.trim(), level: data.status === 'malicious' ? 'critical' : local.level, verdict: data.status === 'malicious' ? 'Known malicious URL detected' : data.status === 'not_listed' ? 'No match found — stay cautious' : 'Reputation check incomplete', findings };
+      setHomeResult(next); setHistory(old => [next, ...old].slice(0, 8));
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not reach URL scanner.'); }
+    finally { setHomeScanning(false); }
   };
   const startNew = () => { setInput(''); setResult(null); setScreen('scan'); };
   const count = history.length;
@@ -94,7 +85,6 @@ function App() {
   return <main className="app">
     <div className="ambient a1"/><div className="ambient a2"/><div className="ambient a3"/>
     {screen === 'welcome' && <section className="welcome-screen">
-      <div className="statusbar"><span>9:41</span><span>◔ ▰ ▴</span></div>
       <div className="welcome-topline"><span>ZXH OFFICIAL</span><span className="top-pulse"/></div>
       <div className="welcome-visual"><div className="umbrella">◈</div><div className="hero-shield"><ShieldCheck size={36}/></div><Wave/></div>
       <div className="welcome-copy"><div className="micro-label">WELCOME TO ZXH OFFICIAL • DIGITAL PROTECTION SYSTEM</div><h1>CyberGuard<br/><em>Phishing Attack Shield</em></h1><p>Stay protected. Spot suspicious links and messages before they become a threat.</p></div>
@@ -108,7 +98,7 @@ function App() {
       </header>
       {screen === 'home' && <section className="dashboard page-in">
         <div className="greeting"><div><small>WELCOME BACK</small><h1>Cyber Defender</h1><p>Your digital safety overview</p></div><div className="avatar"><ShieldCheck/></div></div>
-        <div className="quick-status"><span className="status-orb"><Shield size={17}/></span><span>Protection status <b>Ready</b></span><span className="status-live">● READY</span></div>
+        <div className="quick-status"><span className="status-orb"><Shield size={17}/></span><span>Protection status <b>Scanner ready</b></span><span className="status-live">● CHECKS AVAILABLE</span></div>
         <div className="score-panel">
           <div className="score-ring"><div><strong>{count}</strong><small>LINKS</small><span>Scanned & reviewed</span></div></div>
           <div className="score-caption"><span className="glow-dot"/> YOUR SECURITY ACTIVITY</div>
@@ -124,21 +114,33 @@ function App() {
           <div className="summary-row"><span className="summary-icon"><Clock3/></span><span><b>Weekly Scanned</b><small>Last 7 days</small></span><strong>{history.length} Links</strong></div>
           <div className="summary-row"><span className="summary-icon"><TrendingUp/></span><span><b>Monthly Scanned</b><small>Last 30 days</small></span><strong>{count} Links</strong></div>
         </div>
-        <button className="wide-action" onClick={() => setScreen('scan')}><ScanLine size={18}/> Check a link <ArrowRight size={17}/></button>
+        <div className="home-link-box glass-panel">
+          <div className="home-link-heading"><span className="summary-icon"><Link2/></span><div><b>Check a suspicious link</b><small>Live threat-feed reputation lookup</small></div></div>
+          <label htmlFor="home-url">PASTE URL TO CHECK</label>
+          <input id="home-url" className="home-url-input" type="url" inputMode="url" autoCapitalize="none" autoCorrect="off" value={homeUrl} onChange={e => setHomeUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') runHomeUrlScan(); }} placeholder="https://example.com/verify"/>
+          <button className="scan-button" onClick={runHomeUrlScan} disabled={!homeUrl.trim() || homeScanning}>{homeScanning ? 'CHECKING URL…' : 'CHECK LINK NOW'} <ArrowRight size={17}/></button>
+          {notice && <p className="notice">{notice}</p>}
+        </div>
+        {homeResult && <div className="result-area page-in"><div className="section-title"><h2>URL Check Result</h2><span>JUST NOW</span></div>
+          <div className="result-card glass-panel"><div className={'verdict ' + homeResult.level}><span className="verdict-icon"><CircleAlert size={19}/></span><div><b>{homeResult.verdict}</b><small>{homeResult.level.toUpperCase()} RISK INDICATORS</small></div></div>
+            <div className="finding-list">{homeResult.findings.map((f,i) => <div className="finding" key={i}><span>•</span><div><b>{f.title}</b><p>{f.detail}</p></div></div>)}</div>
+            <button className="scan-button" onClick={() => { setHomeUrl(''); setHomeResult(null); }}>CHECK ANOTHER LINK <ArrowRight size={17}/></button>
+          </div><p className="disclaimer"><Shield size={14}/> A feed no-match is not a safety guarantee.</p>
+        </div>}
       </section>}
       {screen === 'scan' && <section className="scan-page page-in">
         <div className="scan-heading"><div className="scan-emblem"><ShieldCheck size={27}/></div><h1>Check Links</h1><p>Scan a suspicious URL or message</p></div>
         <Wave className="scan-wave"/>
         <div className="scan-form glass-panel">
-          <div className="mode-switch"><button className={mode === 'link' ? 'selected' : ''} onClick={() => setMode('link')}><Link2 size={15}/> Link</button><button className={mode === 'message' ? 'selected' : ''} onClick={() => setMode('message')}><MessageSquareText size={15}/> Message</button></div>
-          <label>{mode === 'link' ? 'SCAN LINK HERE' : 'PASTE MESSAGE HERE'}</label>
-          <textarea value={input} onChange={e => setInput(e.target.value)} placeholder={mode === 'link' ? 'https://example.com/verify' : 'Paste suspicious SMS or WhatsApp message…'} rows={3}/>
-          <div className="input-meta"><span><LockKeyhole size={12}/> {mode === "link" ? "URL checked via threat feeds" : "Processed on this device"}</span><span>{input.length} chars</span></div>
-          <button className="scan-button" onClick={runScan} disabled={!input.trim() || scanning}>{scanning ? "CHECKING THREAT FEEDS…" : "SCAN NOW"} <ArrowRight size={17}/></button>
+          <div className="message-mode-label"><MessageSquareText size={16}/> MESSAGE THREAT ANALYSER</div>
+          <label>PASTE MESSAGE HERE</label>
+          <textarea value={input} onChange={e => setInput(e.target.value)} placeholder="Paste suspicious SMS or WhatsApp message…" rows={3}/>
+          <div className="input-meta"><span><LockKeyhole size={12}/> Message sent to ZXH analysis API; not stored</span><span>{input.length} chars</span></div>
+          <button className="scan-button" onClick={runScan} disabled={!input.trim() || scanning}>{scanning ? "ANALYSING MESSAGE…" : "ANALYSE MESSAGE"} <ArrowRight size={17}/></button>
           {notice && <p className="notice">{notice}</p>}
         </div>
         {result && <div className="result-area page-in">
-          <div className="section-title"><h2>Link Scan Result</h2><span>JUST NOW</span></div>
+          <div className="section-title"><h2>Message Scan Result</h2><span>JUST NOW</span></div>
           <div className="result-card glass-panel">
             <div className="earth-visual"><div className="earth-glow"/><span>CYBERGUARD • ZXH</span></div>
             <div className={'verdict ' + result.level}><span className="verdict-icon"><CircleAlert size={19}/></span><div><b>{result.verdict}</b><small>{result.level.toUpperCase()} RISK INDICATORS</small></div></div>
@@ -149,7 +151,7 @@ function App() {
         </div>}
       </section>}
       {screen === 'history' && <section className="simple-page page-in"><div className="page-title"><small>YOUR ACTIVITY</small><h1>Scan History</h1><p>Recent checks on this device</p></div>{history.length ? history.map((item,i)=><div className="history-item" key={i}><span className={'history-dot ' + item.level}/><div><b>{item.verdict}</b><small>{item.value.slice(0,55)}</small></div><ChevronRight/></div>) : <div className="empty-state"><History size={32}/><b>No scans yet</b><p>Your recent link checks will appear here.</p><button onClick={() => setScreen('scan')}>Start scanning</button></div>}</section>}
-      {screen === 'settings' && <section className="simple-page page-in"><div className="page-title"><small>APP PREFERENCES</small><h1>Settings</h1><p>Privacy and app information</p></div><div className="settings-card"><ShieldCheck/><div><b>Local privacy mode</b><small>Messages are checked locally; link URLs are sent to threat-intelligence feeds for reputation lookup.</small></div><span className="on-pill">ON</span></div><div className="settings-card"><Bell/><div><b>Notifications</b><small>Notifications are not required for link scanning.</small></div></div><div className="settings-card"><LockKeyhole/><div><b>Security notice</b><small>This is not an official NCCIA or malware verification service.</small></div></div></section>}
+      {screen === 'settings' && <section className="simple-page page-in"><div className="page-title"><small>APP PREFERENCES</small><h1>Settings</h1><p>Privacy and app information</p></div><div className="settings-card"><ShieldCheck/><div><b>Local privacy mode</b><small>Message text is sent to the ZXH message-analysis API for pattern checks and is not stored.</small></div><span className="on-pill">ON</span></div><div className="settings-card"><Bell/><div><b>Notifications</b><small>Notifications are not required for link scanning.</small></div></div><div className="settings-card"><LockKeyhole/><div><b>Security notice</b><small>This is not an official NCCIA or malware verification service.</small></div></div></section>}
       <nav className="bottom-nav"><button className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}><Home/><span>Home</span></button><button className={screen === 'scan' ? 'active' : ''} onClick={() => setScreen('scan')}><ScanLine/><span>Scan</span></button><button className={screen === 'history' ? 'active' : ''} onClick={() => setScreen('history')}><History/><span>History</span></button><button className={screen === 'settings' ? 'active' : ''} onClick={() => setScreen('settings')}><Settings/><span>Settings</span></button></nav>
       <footer className="site-credit"><b>ZXH OFFICIAL</b><span>CREATED BY ZULQARNAIN X HAIDER</span></footer>
     </>}
