@@ -87,6 +87,7 @@ function App() {
   const autoScanStartedFor = useRef('');
   const [homeUrl, setHomeUrl] = useState('');
   const [result, setResult] = useState<Result | null>(null);
+  const [alertDismissed, setAlertDismissed] = useState(false);
   const [history, setHistory] = useState<Result[]>(() => { try { const saved = localStorage.getItem('zxh-cyberguard-history-v1'); return saved ? (JSON.parse(saved) as Result[]).slice(0, 30) : []; } catch { return []; } });
   const [notice, setNotice] = useState('');
   useEffect(() => { try { localStorage.setItem('zxh-cyberguard-history-v1', JSON.stringify(history.slice(0, 30))); } catch { /* storage may be unavailable */ } }, [history]);
@@ -119,7 +120,7 @@ function App() {
         next = { value: scanTarget, contentType: 'url', level: statusLevel, verdict, findings, checkedSources: Array.isArray(data.checkedSourceNames) ? data.checkedSourceNames : [], unavailableSources: Array.isArray(data.unavailableSources) ? data.unavailableSources : [], domainRegistration: data.domainRegistration };
       } else { next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted, contentType: detectedKind }; }
       await minimumScanTime;
-      setResult(next); setHistory(old => [next, ...old].slice(0, 30)); setNotice('');
+      setResult(next); setAlertDismissed(false); setHistory(old => [next, ...old].slice(0, 30)); setNotice('');
     } catch (error) {
       await minimumScanTime;
       setNotice(error instanceof Error ? error.message : 'Could not reach scanner.');
@@ -140,7 +141,7 @@ function App() {
     if (!homeUrl.trim()) { setNotice('Paste a URL first.'); return; }
     setInput(homeUrl.trim()); setResult(null); navigateTo('scan'); void runScan(homeUrl);
   };
-  const startNew = () => { setInput(''); setInputKind('message'); setResult(null); setNotice(''); autoScanStartedFor.current = ''; navigateTo('scan'); };
+  const startNew = () => { setInput(''); setInputKind('message'); setResult(null); setAlertDismissed(false); setNotice(''); autoScanStartedFor.current = ''; navigateTo('scan'); };
   const count = history.length;
   const riskCounts = useMemo(() => ({ critical: history.filter(x => x.level === 'critical').length, high: history.filter(x => x.level === 'high').length, medium: history.filter(x => x.level === 'medium').length }), [history]);
   return <main className="app">
@@ -197,7 +198,7 @@ function App() {
         {scanning && <div ref={radarRef} className="scan-progress-anchor"><RadarScanner/></div>}
         {result && <div className="result-area page-in">
           <div className="section-title"><h2>Threat Analysis Report</h2><span>JUST NOW</span></div>
-          {(result.level === "critical" || result.level === "high") && <div className="security-alert-overlay page-in" role="alert"><div className="alert-flash"><span>⚠</span></div><small>ZXH OFFICIAL • SECURITY SYSTEM</small><strong>THREAT ALERT!</strong><b>{result.level.toUpperCase()} RISK DETECTED</b><p>{result.findings.length} suspicious indicator(s) found. Do not open the link or share passwords, OTPs or payment details.</p><button onClick={() => document.querySelector(".result-card")?.scrollIntoView({behavior:"smooth",block:"start"})}>VIEW FULL REPORT ↓</button></div>}<div className="result-card glass-panel">
+          {(result.level === "critical" || result.level === "high") && !alertDismissed && <div className="zxh-alert-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) setAlertDismissed(true); }}><section className="zxh-alert-modal" role="alertdialog" aria-modal="true" aria-labelledby="zxh-alert-title"><button className="zxh-alert-close" aria-label="Close alert" onClick={() => setAlertDismissed(true)}><X size={21}/></button><div className="alert-flash"><span>⚠</span></div><div className="zxh-alert-brand">𖤍 ZXH OFFICIAL 𖤍</div><small className="zxh-alert-kicker">CYBERGUARD SECURITY WARNING</small><strong id="zxh-alert-title">THREAT ALERT</strong><b className="zxh-alert-risk">{result.level.toUpperCase()} RISK DETECTED</b><p>{result.findings.length} suspicious indicator(s) found. Do not open the link or share passwords, OTPs or payment details.</p><div className="zxh-alert-owner">PROTECTED BY <b>ZXH OFFICIAL</b><span>CREATED BY ZULQARNAIN X HAIDER</span></div><button className="zxh-alert-action" onClick={() => { setAlertDismissed(true); window.setTimeout(() => document.querySelector(".result-card")?.scrollIntoView({behavior:"smooth",block:"start"}), 80); }}>VIEW FULL REPORT <ArrowRight size={17}/></button></section></div>}<div className="result-card glass-panel">
             <div className="result-signal"><div className="result-signal-icon"><ShieldCheck size={25}/></div><div><span>ZXH OFFICIAL • THREAT ANALYSIS</span><b>SCAN COMPLETED</b></div><i className={'result-level-dot ' + result.level}/></div><div className="scanned-target"><small>{result.contentType === "url" ? "SCANNED WEBSITE / URL" : result.contentType === "message_with_link" ? "SCANNED TEXT MESSAGE • LINK FOUND" : "SCANNED TEXT MESSAGE"}</small><span>{result.value}</span><em className="content-type-chip">{result.contentType === "url" ? "URL SCAN" : result.contentType === "message_with_link" ? "MESSAGE + LINK SCAN" : "MESSAGE SCAN"}</em></div>
             <div className={'verdict ' + result.level}><span className="verdict-icon"><CircleAlert size={19}/></span><div><b>{result.verdict}</b><small>{result.level.toUpperCase()} RISK INDICATORS</small></div></div>
             <div className="finding-list">{result.findings.map((f,i) => <div className="finding" key={i}><span>•</span><div><b>{f.title}</b><p>{f.detail}</p></div></div>)}</div>
