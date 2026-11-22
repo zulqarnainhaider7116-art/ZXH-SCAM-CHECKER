@@ -239,3 +239,58 @@ body{overflow-x:hidden}
 @keyframes alertIconPop{0%{transform:scale(.55);opacity:.4}75%{transform:scale(1.13)}100%{transform:scale(1)}}
 @media(max-width:380px){.zxh-alert-backdrop{padding:14px}.zxh-alert-modal{border-radius:24px;gap:11px;padding:28px 18px}.zxh-alert-modal>p{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.zxh-alert-backdrop,.zxh-alert-modal,.zxh-alert-modal .alert-flash{animation:none}}
+
+
+/* ZXH OFFICIAL — readable threat detection, open layout and install experience */
+.header-actions{display:flex;align-items:center;gap:9px}
+.install-app-button{min-height:42px;padding:0 13px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid rgba(255,65,96,.55);border-radius:999px;background:linear-gradient(100deg,rgba(255,35,78,.2),rgba(129,10,43,.32));color:#ffdbe3;font:800 9px Orbitron,sans-serif;letter-spacing:.7px;box-shadow:0 0 18px rgba(255,25,72,.12)}
+.install-app-button:disabled{opacity:.65}
+.install-backdrop{position:fixed;inset:0;z-index:11000;display:grid;place-items:center;padding:18px;background:rgba(0,3,8,.88);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);animation:alertBackdropIn .2s ease both}
+.install-modal{position:relative;width:min(100%,440px);padding:34px 25px 24px;display:flex;align-items:center;flex-direction:column;gap:13px;text-align:center;border:1px solid rgba(255,66,101,.48);border-radius:27px;background:radial-gradient(ellipse at top,rgba(255,28,75,.2),transparent 58%),linear-gradient(155deg,#170811,#080b12 65%,#03070d);box-shadow:0 25px 90px rgba(0,0,0,.7),0 0 36px rgba(255,0,55,.18);animation:alertZoomIn .42s cubic-bezier(.16,1.2,.3,1) both}
+.install-close{position:absolute;right:12px;top:12px;width:38px;height:38px;border:1px solid rgba(255,255,255,.12);border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.05);color:#ffe4ea}
+.install-icon{width:68px;height:68px;border-radius:22px;display:grid;place-items:center;color:#ffb5c5;background:rgba(255,35,78,.12);border:1px solid rgba(255,65,100,.38);box-shadow:0 0 28px rgba(255,0,55,.16)}
+.install-modal>small{font:700 8px Orbitron,sans-serif;letter-spacing:1.8px;color:#ff91a8}
+.install-modal h2{margin:0;color:#fff;font:900 clamp(21px,6vw,29px)/1.2 Orbitron,sans-serif}
+.install-modal>p{max-width:340px;margin:0;color:#d6c1c9;font-size:14px;line-height:1.65}
+.install-confirm{width:100%;min-height:52px;margin-top:5px;border:0;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(100deg,#b90d38,#f32957);color:white;font:800 11px Orbitron;letter-spacing:1px;box-shadow:0 8px 25px rgba(255,0,55,.24)}
+.install-steps{width:100%;display:grid;gap:10px;text-align:left;padding:17px 0 8px;color:#ead9df;font-size:13px;line-height:1.5}
+.install-steps>b{color:#ff9caf;font:700 9px Orbitron;letter-spacing:1.3px;margin-bottom:2px}
+.install-later{border:0;background:transparent;color:#a88d98;padding:10px;font:700 9px Orbitron;letter-spacing:1.2px}
+.install-modal footer{color:#806c77;font:500 7px Orbitron;letter-spacing:.8px;line-height:1.6}
+.detected-type{display:grid;grid-template-columns:12px 1fr;align-items:center;column-gap:10px;row-gap:5px;margin:16px 0 11px;padding:17px 18px;border:1px solid rgba(255,52,91,.52);border-left:4px solid #ff315d;border-radius:17px;background:linear-gradient(100deg,rgba(112,8,35,.42),rgba(35,8,20,.58));box-shadow:0 8px 25px rgba(255,0,55,.09)}
+.detected-type-pulse{grid-row:1/3;width:10px;height:10px;border-radius:50%;background:#ff315d;box-shadow:0 0 13px #ff315d}
+.detected-type b{color:#ffb2c1;font:800 clamp(12px,3.4vw,15px) Orbitron,sans-serif;letter-spacing:.65px;line-height:1.45}
+.detected-type small{color:#e0aab7;font-size:12px;line-height:1.5}
+.detected-type.url{border-left-color:#ff315d}
+.result-card.glass-panel{padding:clamp(18px,3vw,30px) 0;background:transparent;border:0;border-radius:0;box-shadow:none;backdrop-filter:none}
+.result-signal{padding:13px 0;border:0;border-bottom:1px solid rgba(255,60,95,.25);border-radius:0;background:transparent}
+.result-signal span{font-size:10px;letter-spacing:1.1px}
+.result-signal b{font-size:14px}
+.scanned-target{margin:16px 0;padding:12px 0;background:transparent;border:0;border-bottom:1px solid rgba(255,255,255,.1);border-radius:0}
+.scanned-target small{font-size:10px;color:#a5b8c2}
+.scanned-target span{font-size:clamp(14px,3.7vw,17px);line-height:1.75;color:#f0f7fa}
+.verdict{gap:14px;padding:18px 0 16px;border-bottom:1px solid rgba(255,58,91,.25)}
+.verdict-icon{width:44px;height:44px;flex:0 0 44px}
+.verdict b{font-size:clamp(17px,4.4vw,22px);line-height:1.4;color:#ff8da3}
+.verdict small{font-size:10px;letter-spacing:1.3px;color:#ff718b}
+.verdict.critical,.verdict.high{border-bottom-color:rgba(255,49,93,.5)}
+.verdict.critical b,.verdict.high b{color:#ff667f}
+.finding-list{gap:17px;padding:14px 0 20px}
+.finding{gap:12px;color:#f0e8eb;font-size:14px;line-height:1.65}
+.finding>span{color:#ff526f;font-size:23px;line-height:1}
+.finding b{font-size:15px;line-height:1.5;color:#fff}
+.finding p{margin:5px 0 0;color:#c5b6bd;font-size:13px;line-height:1.7}
+.source-coverage,.domain-intel{border:0;border-left:3px solid rgba(255,76,109,.55);border-radius:0;background:rgba(255,255,255,.035);padding:16px 18px;font-size:13px;line-height:1.7}
+.source-coverage>b,.domain-intel>b{font-size:10px}
+.source-coverage>span{font-size:13px}
+.disclaimer{font-size:11px;line-height:1.7}
+@media(min-width:700px){
+ .detected-type{padding:20px 23px;margin:20px 0 15px}
+ .detected-type b{font-size:16px}.detected-type small{font-size:14px}
+ .result-signal span{font-size:11px}.result-signal b{font-size:16px}
+ .scanned-target span{font-size:16px}
+ .verdict b{font-size:22px}.verdict small{font-size:11px}
+ .finding{font-size:16px}.finding b{font-size:17px}.finding p{font-size:15px}
+ .source-coverage>span,.domain-intel{font-size:14px}
+}
+@media(max-width:430px){.install-app-button{padding:0 10px;font-size:8px;gap:5px}.header-actions{gap:6px}.install-modal{padding:30px 19px 20px}.finding{font-size:13px}.finding b{font-size:14px}.finding p{font-size:12px}}
