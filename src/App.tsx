@@ -97,10 +97,10 @@ function App() {
       let next: Result;
       if (isUrl) {
         const findings: Finding[] = Array.isArray(data.findings) ? [...data.findings] : [];
-        if (data.status === 'malicious') findings.unshift({ level: 'critical', title: 'Threat intelligence match', detail: 'This URL matched a known malicious URL feed. Do not open it.' });
-        else if (data.status === 'not_listed') findings.unshift({ level: 'low', title: 'No threat-feed match found', detail: 'The checked feeds did not list this URL. This is not proof that it is safe.' });
-        else findings.unshift({ level: 'medium', title: 'Live reputation lookup unavailable', detail: data.message || 'The external threat feed could not be checked.' });
-        next = { value: scanTarget, level: data.status === 'malicious' ? 'critical' : data.status === 'not_listed' ? 'low' : 'medium', verdict: data.status === 'malicious' ? 'Known malicious URL detected' : data.status === 'not_listed' ? 'No match found — stay cautious' : 'Reputation check incomplete', findings };
+        const statusLevel: Finding['level'] = data.status === 'malicious' ? 'critical' : data.status === 'suspicious' ? (data.level === 'high' ? 'high' : 'medium') : 'medium';
+        const verdict = data.status === 'malicious' ? 'Known malicious URL detected' : data.status === 'suspicious' ? 'Suspicious URL characteristics found' : data.status === 'not_listed' ? 'No known threat match — not verified safe' : 'Reputation check incomplete';
+        if (!findings.length) findings.push({ level: statusLevel, title: 'URL review completed', detail: 'Review the destination carefully. No automated scan can guarantee a website is safe.' });
+        next = { value: scanTarget, level: statusLevel, verdict, findings };
       } else { next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted }; }
       await minimumScanTime;
       setResult(next); setHistory(old => [next, ...old].slice(0, 8)); setNotice('');
@@ -182,7 +182,19 @@ function App() {
       {screen === 'history' && <section className="simple-page page-in"><div className="page-title"><small>YOUR ACTIVITY</small><h1>Scan History</h1><p>Recent checks on this device</p></div>{history.length ? history.map((item,i)=><div className="history-item" key={i}><span className={'history-dot ' + item.level}/><div><b>{item.verdict}</b><small>{item.value.slice(0,55)}</small></div><ChevronRight/></div>) : <div className="empty-state"><History size={32}/><b>No scans yet</b><p>Your recent link checks will appear here.</p><button onClick={() => navigateTo('scan')}>Start scanning</button></div>}</section>}
       {screen === 'settings' && <section className="simple-page page-in"><div className="page-title"><small>APP PREFERENCES</small><h1>Settings</h1><p>Privacy and app information</p></div><div className="settings-card"><ShieldCheck/><div><b>Local privacy mode</b><small>Message text is sent to the ZXH message-analysis API for pattern checks and is not stored.</small></div><span className="on-pill">ON</span></div><div className="settings-card"><Bell/><div><b>Notifications</b><small>Notifications are not required for link scanning.</small></div></div><div className="settings-card"><LockKeyhole/><div><b>Security notice</b><small>This is not an official NCCIA or malware verification service.</small></div></div></section>}
       <nav className="bottom-nav"><button className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}><Home/><span>Home</span></button><button className={screen === 'scan' ? 'active' : ''} onClick={() => setScreen('scan')}><ScanLine/><span>Scan</span></button><button className={screen === 'history' ? 'active' : ''} onClick={() => navigateTo('history')}><History/><span>History</span></button><button className={screen === 'settings' ? 'active' : ''} onClick={() => navigateTo('settings')}><Settings/><span>Settings</span></button></nav>
-      <footer className="site-credit"><b>ZXH OFFICIAL</b><span>CREATED BY ZULQARNAIN X HAIDER</span></footer>
+      <footer className="site-credit">
+        <b>ZXH OFFICIAL</b><span>CREATED BY ZULQARNAIN X HAIDER</span>
+        <div className="footer-links" aria-label="Official ZXH links">
+          <a href="https://whatsapp.com/channel/0029Vb6lszR7YSd3iYfa2V0n" target="_blank" rel="noopener noreferrer">WhatsApp Channel</a>
+          <a href="https://t.me/zxh_official786" target="_blank" rel="noopener noreferrer">Telegram</a>
+          <a href="https://zxh-official-tools.pages.dev/" target="_blank" rel="noopener noreferrer">Tools Hub</a>
+          <a href="https://zxh-official-mods.pages.dev/" target="_blank" rel="noopener noreferrer">Mods</a>
+          <a href="https://zxh-all-media-downloader.pages.dev/" target="_blank" rel="noopener noreferrer">Media Downloader</a>
+          <a href="https://zxh-official-portfolio.pages.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
+          <a href="https://whatsapp.com/channel/0029Vb8XF2y1NCrQDWetrk1r" target="_blank" rel="noopener noreferrer">WhatsApp Backup</a>
+        </div>
+        <small className="footer-disclaimer">Threat-feed matches and URL pattern checks are indicators, not a guarantee of safety.</small>
+      </footer>
     </>}
   </main>;
 }
