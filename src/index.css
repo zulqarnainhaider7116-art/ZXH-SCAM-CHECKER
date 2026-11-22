@@ -294,3 +294,7 @@ body{overflow-x:hidden}
  .source-coverage>span,.domain-intel{font-size:14px}
 }
 @media(max-width:430px){.install-app-button{padding:0 10px;font-size:8px;gap:5px}.header-actions{gap:6px}.install-modal{padding:30px 19px 20px}.finding{font-size:13px}.finding b{font-size:14px}.finding p{font-size:12px}}
+
+
+.welcome-install{min-height:38px;padding:0 13px;border:1px solid rgba(255,70,105,.48);border-radius:999px;background:rgba(255,35,78,.13);color:#ffb3c2;font:800 8px Orbitron,sans-serif;letter-spacing:.8px;box-shadow:0 0 16px rgba(255,0,55,.1)}
+.welcome-topline{display:flex;align-items:center;justify-content:space-between;gap:12px}
