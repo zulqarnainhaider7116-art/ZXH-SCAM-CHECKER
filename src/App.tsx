@@ -84,6 +84,7 @@ function App() {
   const [input, setInput] = useState('');
   const [inputKind, setInputKind] = useState<'url' | 'message' | 'message_with_link'>('message');
   const autoScanTimer = useRef<number | null>(null);
+  const autoScanStartedFor = useRef('');
   const [homeUrl, setHomeUrl] = useState('');
   const [result, setResult] = useState<Result | null>(null);
   const [history, setHistory] = useState<Result[]>(() => { try { const saved = localStorage.getItem('zxh-cyberguard-history-v1'); return saved ? (JSON.parse(saved) as Result[]).slice(0, 30) : []; } catch { return []; } });
@@ -98,10 +99,13 @@ function App() {
   const runScan = async (value = input) => {
     const submitted = value.trim();
     if (!submitted) { setNotice('Paste a message or URL first.'); return; }
+    if (autoScanTimer.current !== null) { window.clearTimeout(autoScanTimer.current); autoScanTimer.current = null; }
+    autoScanStartedFor.current = submitted;
     setScanning(true); setResult(null); setNotice('');
-    const isUrl = /^(https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:[/:?#].*)?$/i.test(submitted);
+    const detectedKind = detectContentType(submitted);
+    const isUrl = detectedKind === 'url';
     const scanTarget = isUrl && !/^https?:\/\//i.test(submitted) ? 'https://' + submitted : submitted;
-    const minimumScanTime = new Promise(resolve => window.setTimeout(resolve, 6500));
+    const minimumScanTime = new Promise(resolve => window.setTimeout(resolve, 1800));
     try {
       const response = await fetch(isUrl ? '/api/check-url' : '/api/check-message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(isUrl ? { url: scanTarget } : { message: submitted }) });
       const data = await response.json();
@@ -122,15 +126,21 @@ function App() {
     } finally { setScanning(false); }
   };
   useEffect(() => {
-    if (screen !== 'scan' || !input.trim() || input.trim().length < 8 || scanning || (result && (result.value === input.trim() || (result.contentType === 'url' && result.value === 'https://' + input.trim())))) return;
-    const timer = window.setTimeout(() => { void runScan(input); }, 1200);
+    const value = input.trim();
+    if (screen !== 'scan' || value.length < 8 || scanning || result?.value === value || autoScanStartedFor.current === value) return;
+    const timer = window.setTimeout(() => {
+      if (autoScanStartedFor.current !== value) {
+        autoScanStartedFor.current = value;
+        void runScan(value);
+      }
+    }, 1200);
     return () => window.clearTimeout(timer);
   }, [input, screen, scanning, result]);
   const runHomeUrlScan = () => {
     if (!homeUrl.trim()) { setNotice('Paste a URL first.'); return; }
     setInput(homeUrl.trim()); setResult(null); navigateTo('scan'); void runScan(homeUrl);
   };
-  const startNew = () => { setInput(''); setInputKind('message'); setResult(null); navigateTo('scan'); };
+  const startNew = () => { setInput(''); setInputKind('message'); setResult(null); setNotice(''); autoScanStartedFor.current = ''; navigateTo('scan'); };
   const count = history.length;
   const riskCounts = useMemo(() => ({ critical: history.filter(x => x.level === 'critical').length, high: history.filter(x => x.level === 'high').length, medium: history.filter(x => x.level === 'medium').length }), [history]);
   return <main className="app">
@@ -179,7 +189,7 @@ function App() {
         <div className="scan-form glass-panel">
           <div className="message-mode-label"><MessageSquareText size={16}/> LINK &amp; MESSAGE THREAT ANALYSER</div>
           <label>PASTE LINK OR MESSAGE HERE</label>
-          <textarea value={input} onChange={e => { const v=e.target.value; setInput(v); setInputKind(detectContentType(v)); setResult(null); }} placeholder="Paste a URL or suspicious SMS / WhatsApp message…" rows={3}/>
+          <textarea value={input} onChange={e => { const v=e.target.value; setInput(v); setInputKind(detectContentType(v)); setResult(null); setNotice(''); autoScanStartedFor.current = ''; if (autoScanTimer.current !== null) window.clearTimeout(autoScanTimer.current); }} placeholder="Paste a URL or suspicious SMS / WhatsApp message…" rows={3}/>
           <div className={"detected-type " + inputKind}><span className="detected-type-pulse"/><b>{inputKind === "url" ? "WEBSITE / URL DETECTED" : inputKind === "message_with_link" ? "TEXT MESSAGE + LINK DETECTED" : "TEXT MESSAGE DETECTED"}</b><small>{inputKind === "url" ? "Website reputation scanner selected" : inputKind === "message_with_link" ? "Message scanner selected • embedded link noticed" : "Message threat scanner selected"}</small></div><div className="input-meta"><span><LockKeyhole size={12}/> Auto-detection selects the correct scanner</span><span>{input.length} chars</span></div>
           <button className="scan-button" onClick={() => void runScan()} disabled={!input.trim() || scanning}>{scanning ? "SCANNING…" : "SCAN LINK / MESSAGE"} <ArrowRight size={17}/></button>
           {notice && <p className="notice">{notice}</p>}
