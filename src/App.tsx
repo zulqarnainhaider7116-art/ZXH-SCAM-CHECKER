@@ -38,6 +38,25 @@ function Wave({ className = '' }: { className?: string }) {
   </svg>;
 }
 
+
+function RadarScanner() {
+  const [paused, setPaused] = useState(false);
+  const [boosted, setBoosted] = useState(false);
+  const [cycle, setCycle] = useState(0);
+  const targets = [{x:24,y:34},{x:68,y:24},{x:76,y:62},{x:39,y:73},{x:54,y:48},{x:18,y:67}];
+  return <div className="radar-panel glass-panel page-in">
+    <div className="radar-topline"><span><i className="radar-live-dot"/> ZXH RED RADAR SCANNER</span><b>SIGNAL POINTS: {targets.length.toString().padStart(2,'0')}</b></div>
+    <div className={'radar-scope' + (paused ? ' paused' : '') + (boosted ? ' boosted' : '')} key={cycle}>
+      <div className="radar-grid-cross"/><div className="radar-sweep"/><div className="radar-center"><Shield size={20}/></div>
+      {targets.map((point,i)=><span className={'radar-blip blip-'+i} key={i} style={{left:point.x+'%',top:point.y+'%'}}/>)}
+      <span className="radar-axis axis-top">N</span><span className="radar-axis axis-right">E</span><span className="radar-axis axis-bottom">S</span><span className="radar-axis axis-left">W</span>
+    </div>
+    <div className="radar-readout"><span><i/> SCANNING IN PROGRESS</span><b>{boosted ? 'HIGH SPEED' : 'STANDARD SPEED'}</b></div>
+    <div className="radar-controls"><button onClick={()=>setPaused(v=>!v)}>{paused ? '▶ RESUME' : 'Ⅱ PAUSE'}</button><button onClick={()=>{setPaused(false);setCycle(v=>v+1);}}>↻ RESET</button><button className={boosted ? 'boost-active' : ''} onClick={()=>setBoosted(v=>!v)}>ϟ {boosted ? 'NORMAL' : 'BOOST'}</button></div>
+    <p className="radar-caption">VISUAL SCAN SEQUENCE • THREAT INTELLIGENCE CHECK RUNNING</p>
+  </div>;
+}
+
 function App() {
   const [screen, setScreen] = useState<Screen>('welcome');
   const navigateTo = (next: Screen) => {
@@ -61,8 +80,9 @@ function App() {
   const runScan = async (value = input) => {
     const submitted = value.trim();
     if (!submitted) { setNotice('Paste a message or URL first.'); return; }
-    setScanning(true); setNotice('');
+    setScanning(true); setResult(null); setNotice('');
     const isUrl = /^https?:\/\//i.test(submitted);
+    const minimumScanTime = new Promise(resolve => window.setTimeout(resolve, 6500));
     try {
       const response = await fetch(isUrl ? '/api/check-url' : '/api/check-message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(isUrl ? { url: submitted } : { message: submitted }) });
       const data = await response.json();
@@ -75,9 +95,12 @@ function App() {
         else findings.unshift({ level: 'medium', title: 'Live reputation lookup unavailable', detail: data.message || 'The external threat feed could not be checked.' });
         next = { value: submitted, level: data.status === 'malicious' ? 'critical' : data.status === 'not_listed' ? 'low' : 'medium', verdict: data.status === 'malicious' ? 'Known malicious URL detected' : data.status === 'not_listed' ? 'No match found — stay cautious' : 'Reputation check incomplete', findings };
       } else { next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted }; }
+      await minimumScanTime;
       setResult(next); setHistory(old => [next, ...old].slice(0, 8)); setNotice('');
-    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not reach scanner.'); }
-    finally { setScanning(false); }
+    } catch (error) {
+      await minimumScanTime;
+      setNotice(error instanceof Error ? error.message : 'Could not reach scanner.');
+    } finally { setScanning(false); }
   };
   const runHomeUrlScan = () => {
     if (!homeUrl.trim()) { setNotice('Paste a URL first.'); return; }
@@ -137,10 +160,11 @@ function App() {
           <button className="scan-button" onClick={runScan} disabled={!input.trim() || scanning}>{scanning ? "SCANNING…" : "SCAN LINK / MESSAGE"} <ArrowRight size={17}/></button>
           {notice && <p className="notice">{notice}</p>}
         </div>
+        {scanning && <RadarScanner/>}
         {result && <div className="result-area page-in">
-          <div className="section-title"><h2>Scan Result</h2><span>JUST NOW</span></div>
+          <div className="section-title"><h2>Threat Analysis Report</h2><span>JUST NOW</span></div>
           <div className="result-card glass-panel">
-            <div className="earth-visual"><div className="earth-glow"/><span>CYBERGUARD • ZXH</span></div>
+            <div className="result-signal"><div className="result-signal-icon"><ShieldCheck size={25}/></div><div><span>ZXH OFFICIAL • THREAT ANALYSIS</span><b>SCAN COMPLETED</b></div><i className={'result-level-dot ' + result.level}/></div><div className="scanned-target"><small>SCANNED TARGET</small><span>{result.value}</span></div>
             <div className={'verdict ' + result.level}><span className="verdict-icon"><CircleAlert size={19}/></span><div><b>{result.verdict}</b><small>{result.level.toUpperCase()} RISK INDICATORS</small></div></div>
             <div className="finding-list">{result.findings.map((f,i) => <div className="finding" key={i}><span>•</span><div><b>{f.title}</b><p>{f.detail}</p></div></div>)}</div>
             <button className="scan-button" onClick={startNew}>CHECK AGAIN <ArrowRight size={17}/></button>
