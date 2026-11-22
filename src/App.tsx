@@ -104,7 +104,7 @@ function App() {
         next = { value: scanTarget, level: statusLevel, verdict, findings, checkedSources: Array.isArray(data.checkedSourceNames) ? data.checkedSourceNames : [], unavailableSources: Array.isArray(data.unavailableSources) ? data.unavailableSources : [], domainRegistration: data.domainRegistration };
       } else { next = { verdict: data.verdict, level: data.level, findings: data.findings, value: submitted }; }
       await minimumScanTime;
-      setResult(next); setHistory(old => [next, ...old].slice(0, 8)); setNotice('');
+      setResult(next); setHistory(old => [next, ...old].slice(0, 30)); setNotice('');
     } catch (error) {
       await minimumScanTime;
       setNotice(error instanceof Error ? error.message : 'Could not reach scanner.');
