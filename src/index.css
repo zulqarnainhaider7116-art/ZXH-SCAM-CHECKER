@@ -419,3 +419,5 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px soli
  .risk-tile b{font-size:22px}
  .bottom-nav button{font-size:10px}
 }
+
+.history-see-all{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;color:#765fc1;font:700 13px 'DM Sans',sans-serif;padding:8px 0}.history-see-all svg{width:15px;height:15px}
