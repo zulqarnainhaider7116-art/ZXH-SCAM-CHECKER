@@ -151,7 +151,7 @@ export default async function handler(req: any, res: any) {
 
   if (checkedSources > 0) {
     findings.unshift({ level: "low", title: "No known threat-feed match", detail: "No match was found in the sources that responded (" + checkedSourceNames.join(", ") + "). " + (unavailableSources.length ? "Unavailable: " + unavailableSources.join(", ") + ". " : "") + "This is not a clean bill of health and does not prove the destination is safe." });
-    return res.status(200).json({ status: "not_listed", verdict: "No known threat match — not verified safe", level: "medium", findings, sources: [], checkedSources });
+    return res.status(200).json({ status: "not_listed", verdict: "No known threat match — not verified safe", level: "medium", findings, sources: [], checkedSources, checkedSourceNames, unavailableSources });
   }
 
   findings.unshift({ level: "medium", title: "Threat-intelligence lookup unavailable", detail: "No external threat feed could be confirmed during this scan. Treat this URL as unverified and do not enter sensitive information." });
