@@ -111,3 +111,93 @@
 .scanned-target small{display:block;color:#7593a2;font:600 7px Orbitron;letter-spacing:1.3px;margin-bottom:6px}.scanned-target span{display:block;color:#c9e6ef;font-size:9px;line-height:1.6;overflow-wrap:anywhere}
 .verdict{border-bottom:1px solid rgba(142,193,211,.1);margin-bottom:10px}.finding{padding:8px 9px;border-radius:11px;background:rgba(2,12,20,.44);border:1px solid rgba(121,190,212,.07)}
 @media(prefers-reduced-motion:reduce){.radar-sweep,.radar-blip,.radar-live-dot,.radar-readout i{animation-duration:10s!important}}
+
+
+/* ZXH OFFICIAL — true responsive full-screen desktop + mobile layouts */
+html,body,#root{width:100%;min-height:100%;margin:0}
+body{overflow-x:hidden}
+.app{width:100%;max-width:none;min-height:100svh;margin:0;padding:0 clamp(16px,4vw,72px) 116px;border:0;border-radius:0;overflow-x:clip}
+.app-header{width:100%;max-width:1600px;margin:0 auto;padding:16px 0}
+.dashboard,.scan-page,.simple-page{width:100%;max-width:1500px;margin-left:auto;margin-right:auto}
+.welcome-screen{width:100%;max-width:1120px;margin:0 auto;padding-left:clamp(8px,3vw,36px);padding-right:clamp(8px,3vw,36px)}
+.bottom-nav{width:min(760px,calc(100% - 32px));max-width:760px}
+.site-credit{padding-bottom:10px}
+.scan-progress-anchor{width:100%;scroll-margin-top:24px}
+.scan-form textarea,.home-url-input{font-size:16px}
+.scan-form textarea{min-height:132px;resize:vertical}
+.scan-button{min-height:52px;touch-action:manipulation}
+.scanner-back,.radar-controls button,.icon-btn,.bottom-nav button{min-height:44px}
+.home-link-box,.scan-form,.result-card{min-width:0}
+@media(min-width:700px){
+  .app{padding-left:clamp(28px,5vw,88px);padding-right:clamp(28px,5vw,88px);padding-bottom:132px}
+  .app-header{padding-top:22px;padding-bottom:18px}
+  .dashboard{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:clamp(16px,2vw,30px);row-gap:18px;padding-top:34px}
+  .greeting{grid-column:1/-1;margin:0 0 8px}
+  .greeting h1{font-size:clamp(30px,3vw,44px)}
+  .greeting p{font-size:14px}
+  .home-link-box{grid-column:span 7;align-self:stretch;margin:0;padding:clamp(22px,2.5vw,36px)}
+  .home-link-heading b{font-size:16px}.home-link-heading small{font-size:12px}
+  .home-link-box label{font-size:10px}
+  .home-url-input{height:56px;font-size:15px}
+  .score-panel{grid-column:span 5;height:100%;min-height:245px;margin:0}
+  .risk-grid{grid-column:1/-1;gap:16px;margin-top:2px}
+  .risk-tile{padding:20px}.risk-tile span{font-size:13px}.risk-tile b{font-size:30px}.risk-tile small{font-size:11px}
+  .section-title{grid-column:1/-1;margin:10px 3px 0}.section-title h2{font-size:19px}
+  .summary-list{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  .summary-row{min-height:76px;padding:14px}
+  .summary-row b{font-size:12px}.summary-row small{font-size:10px}.summary-row strong{font-size:10px}
+  .scan-page{padding-top:24px}
+  .scan-heading{padding:18px 0 22px}
+  .scan-heading h1{font-size:clamp(30px,3vw,42px)}
+  .scan-heading p{font-size:14px}
+  .scan-wave{display:none}
+  .scan-form{padding:clamp(22px,2.4vw,34px)}
+  .scan-form textarea{min-height:190px;font-size:15px}
+  .scan-form label{font-size:11px}
+  .message-mode-label{font-size:10px}
+  .radar-panel{padding:22px;margin-top:0}
+  .radar-scope{width:min(100%,520px)}
+  .radar-topline{font-size:10px}.radar-topline b{font-size:9px}
+  .radar-controls button{height:42px;font-size:9px}
+  .result-area{margin-top:26px}
+  .result-card{padding:22px}
+  .result-signal{min-height:84px}.result-signal span{font-size:9px}.result-signal b{font-size:13px}
+  .scanned-target span{font-size:13px}
+  .verdict b{font-size:16px}.verdict small{font-size:9px}
+  .finding{padding:12px 14px}.finding b{font-size:12px}.finding p{font-size:11px}
+  .disclaimer{font-size:10px}
+  .bottom-nav{bottom:16px;height:78px;border-radius:22px;border:1px solid rgba(93,207,245,.18)}
+  .bottom-nav button{font-size:10px}.bottom-nav svg{width:20px;height:20px}
+}
+@media(min-width:1100px){
+  .dashboard{padding-top:42px}
+  .scan-page:has(.radar-panel){display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);column-gap:clamp(22px,3vw,48px);align-items:start}
+  .scan-page:has(.radar-panel)>.scanner-back,.scan-page:has(.radar-panel)>.scan-heading,.scan-page:has(.radar-panel)>.result-area{grid-column:1/-1}
+  .scan-page:has(.radar-panel)>.scan-form{grid-column:1;grid-row:3}
+  .scan-page:has(.radar-panel)>.scan-progress-anchor{grid-column:2;grid-row:3}
+  .scan-page:has(.radar-panel)>.scan-heading{padding:10px 0 26px}
+  .scan-page:has(.radar-panel)>.result-area{grid-row:4}
+  .scan-page:not(:has(.radar-panel))>.scan-form{max-width:900px;margin:0 auto}
+}
+@media(max-width:699px){
+  .app{padding-left:16px;padding-right:16px;padding-bottom:110px}
+  .app-header{padding-top:max(12px,env(safe-area-inset-top))}
+  .dashboard,.scan-page,.simple-page{min-height:calc(100svh - 140px)}
+  .welcome-visual{height:clamp(190px,34svh,270px)}
+  .welcome-copy h1{font-size:clamp(27px,8vw,38px)}
+  .radar-panel{padding:12px 10px}
+  .radar-scope{width:min(100%, min(82vw,360px))}
+  .scan-form{padding:14px}
+  .scan-form textarea{min-height:120px}
+  .input-meta{font-size:8px;gap:8px}
+  .input-meta span:first-child{max-width:75%}
+  .result-area{margin-top:18px}
+  .bottom-nav{bottom:0;left:0;transform:none;width:100%;max-width:none;border-radius:18px 18px 0 0;height:calc(70px + env(safe-area-inset-bottom));padding-bottom:max(8px,env(safe-area-inset-bottom))}
+}
+@media(max-width:380px){
+  .app{padding-left:12px;padding-right:12px}
+  .greeting h1{font-size:21px}
+  .radar-topline{font-size:7px}.radar-topline b{font-size:6px}
+  .radar-controls{gap:5px}.radar-controls button{font-size:7px}
+}
+@media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto}.page-in{animation:none}}
