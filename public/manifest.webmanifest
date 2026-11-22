@@ -1,0 +1,11 @@
+{
+  "name": "ZXH OFFICIAL ScamCheck",
+  "short_name": "ZXH ScamCheck",
+  "description": "Privacy-first scam awareness and suspicious message checker by ZXH OFFICIAL.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#030b12",
+  "theme_color": "#030b12",
+  "icons": []
+}
