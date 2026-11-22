@@ -83,6 +83,8 @@ export default async function handler(req: any, res: any) {
   const findings = localUrlFindings(url);
   let checkedSources = 0;
   const matchedSources: string[] = [];
+  const checkedSourceNames: string[] = [];
+  const unavailableSources: string[] = [];
 
   try {
     const response = await fetch(OPENPHISH_FEED, {
@@ -91,12 +93,15 @@ export default async function handler(req: any, res: any) {
     });
     if (response.ok) {
       checkedSources++;
+      checkedSourceNames.push("OpenPhish Community Feed");
       const entries = (await response.text()).split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
       if (entries.some(entry => {
         try { return normalizeUrl(entry) === normalized; } catch { return false; }
       })) matchedSources.push("OpenPhish Community Feed");
+    } else {
+      unavailableSources.push("OpenPhish Community Feed");
     }
-  } catch { /* a failed source is not a clean result */ }
+  } catch { unavailableSources.push("OpenPhish Community Feed"); }
 
   const urlhausKey = process.env.URLHAUS_AUTH_KEY;
   if (urlhausKey) {
@@ -110,9 +115,18 @@ export default async function handler(req: any, res: any) {
       if (response.ok) {
         const data: any = await response.json();
         if (data.query_status === "ok") matchedSources.push("URLhaus");
-        if (data.query_status === "ok" || data.query_status === "no_results") checkedSources++;
+        if (data.query_status === "ok" || data.query_status === "no_results") {
+          checkedSources++;
+          checkedSourceNames.push("URLhaus");
+        } else {
+          unavailableSources.push("URLhaus");
+        }
+      } else {
+        unavailableSources.push("URLhaus");
       }
-    } catch { /* source unavailable */ }
+    } catch { unavailableSources.push("URLhaus"); }
+  } else {
+    unavailableSources.push("URLhaus (API key not configured)");
   }
 
   const googleKey = process.env.GOOGLE_SAFE_BROWSING_API_KEY;
@@ -120,23 +134,26 @@ export default async function handler(req: any, res: any) {
     try {
       if (await checkGoogleSafeBrowsing(url, googleKey)) matchedSources.push("Google Safe Browsing");
       checkedSources++;
-    } catch { /* source unavailable */ }
+      checkedSourceNames.push("Google Safe Browsing");
+    } catch { unavailableSources.push("Google Safe Browsing"); }
+  } else {
+    unavailableSources.push("Google Safe Browsing (API key not configured)");
   }
 
   if (matchedSources.length) {
     findings.unshift({ level: "critical", title: "Known threat intelligence match", detail: "This exact URL matched: " + matchedSources.join(", ") + ". Do not open it or enter information." });
-    return res.status(200).json({ status: "malicious", verdict: "Known malicious URL detected", level: "critical", findings, sources: matchedSources, checkedSources });
+    return res.status(200).json({ status: "malicious", verdict: "Known malicious URL detected", level: "critical", findings, sources: matchedSources, checkedSources, checkedSourceNames, unavailableSources });
   }
 
   if (findings.some(f => f.level === "high" || f.level === "medium")) {
-    return res.status(200).json({ status: "suspicious", verdict: "Suspicious URL characteristics found", level: findings.some(f => f.level === "high") ? "high" : "medium", findings, sources: [], checkedSources });
+    return res.status(200).json({ status: "suspicious", verdict: "Suspicious URL characteristics found", level: findings.some(f => f.level === "high") ? "high" : "medium", findings, sources: [], checkedSources, checkedSourceNames, unavailableSources });
   }
 
   if (checkedSources > 0) {
-    findings.unshift({ level: "low", title: "No known threat-feed match", detail: "The available threat feeds did not list this URL. This is not a clean bill of health and does not prove the destination is safe." });
+    findings.unshift({ level: "low", title: "No known threat-feed match", detail: "No match was found in the sources that responded (" + checkedSourceNames.join(", ") + "). " + (unavailableSources.length ? "Unavailable: " + unavailableSources.join(", ") + ". " : "") + "This is not a clean bill of health and does not prove the destination is safe." });
     return res.status(200).json({ status: "not_listed", verdict: "No known threat match — not verified safe", level: "medium", findings, sources: [], checkedSources });
   }
 
   findings.unshift({ level: "medium", title: "Threat-intelligence lookup unavailable", detail: "No external threat feed could be confirmed during this scan. Treat this URL as unverified and do not enter sensitive information." });
-  return res.status(200).json({ status: "unknown", verdict: "Reputation check incomplete", level: "medium", findings, sources: [], checkedSources: 0 });
+  return res.status(200).json({ status: "unknown", verdict: "Reputation check incomplete", level: "medium", findings, sources: [], checkedSources: 0, checkedSourceNames, unavailableSources });
 }
