@@ -217,13 +217,25 @@ body{overflow-x:hidden}
 .domain-intel strong{color:#e2f5fb;font-size:12px}
 @media(min-width:700px){.domain-intel{padding:17px 19px;font-size:12px}.domain-intel>b{font-size:9px}.domain-intel strong{font-size:14px}}
 
-/* ZXH OFFICIAL — clear content detection + high-visibility security alert */
-.detected-type{display:grid;grid-template-columns:12px 1fr;column-gap:9px;row-gap:4px;align-items:center;margin:12px 0 7px;padding:13px 14px;border-radius:14px;background:rgba(0,180,190,.09);border:1px solid rgba(70,220,220,.25)}
-.detected-type-pulse{grid-row:1/3;width:9px;height:9px;border-radius:50%;background:#35e6c1;box-shadow:0 0 12px currentColor}
-.detected-type b{font:700 11px Orbitron,sans-serif;letter-spacing:.7px;color:#b8fff0}.detected-type small{font-size:11px;color:#8fb7c3}.detected-type.url{border-color:rgba(35,164,255,.38);background:rgba(20,110,210,.12)}.detected-type.url .detected-type-pulse{background:#3cbaff}.detected-type.message_with_link{border-color:rgba(255,185,72,.38);background:rgba(190,120,20,.1)}.detected-type.message_with_link .detected-type-pulse{background:#ffc15c}
-.content-type-chip{display:inline-block;margin-top:9px;padding:6px 9px;border-radius:8px;background:rgba(48,190,208,.12);color:#8fe8ed;font:700 9px Orbitron;font-style:normal;letter-spacing:.7px}
-.security-alert-overlay{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;text-align:center;gap:11px;margin:0 0 16px;padding:clamp(24px,5vw,44px) 18px;border:2px solid rgba(255,40,75,.78);border-radius:24px;background:radial-gradient(circle at 50% 0,rgba(255,0,55,.3),transparent 62%),linear-gradient(145deg,#300711,#10050b 75%);box-shadow:0 0 22px rgba(255,0,55,.32),inset 0 0 35px rgba(255,0,55,.12);animation:alertShake .48s ease-in-out 2,alertGlow 1.1s ease-in-out infinite alternate}
-.security-alert-overlay small{font:700 9px Orbitron;letter-spacing:2px;color:#ff9eaf}.security-alert-overlay strong{font:900 clamp(32px,8vw,58px) Orbitron,sans-serif;line-height:1;color:#fff;text-shadow:0 0 12px #ff174b,0 0 30px rgba(255,0,60,.8)}.security-alert-overlay>b{font:800 clamp(13px,3vw,18px) Orbitron;letter-spacing:1.4px;color:#ff617d}.security-alert-overlay p{max-width:620px;margin:0;color:#ffdce3;font-size:clamp(13px,2vw,16px);line-height:1.6}.security-alert-overlay button{min-height:46px;padding:0 20px;border:1px solid rgba(255,155,175,.6);border-radius:12px;background:#ed1745;color:white;font:800 11px Orbitron;letter-spacing:1px;box-shadow:0 0 20px rgba(255,0,55,.35)}
-.alert-flash{width:64px;height:64px;display:grid;place-items:center;border-radius:50%;background:rgba(255,0,55,.18);border:2px solid #ff315d;box-shadow:0 0 0 9px rgba(255,0,55,.08),0 0 28px rgba(255,0,55,.5);animation:alertPulse .7s ease-in-out infinite alternate}.alert-flash span{font-size:38px;color:#ff7b91}
-@keyframes alertShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}@keyframes alertGlow{from{box-shadow:0 0 15px rgba(255,0,55,.2),inset 0 0 20px rgba(255,0,55,.06)}to{box-shadow:0 0 34px rgba(255,0,55,.55),inset 0 0 35px rgba(255,0,55,.16)}}@keyframes alertPulse{to{transform:scale(1.1);filter:brightness(1.4)}}
-@media(prefers-reduced-motion:reduce){.security-alert-overlay,.alert-flash{animation:none}}
+
+/* ZXH OFFICIAL — cinematic one-shot threat alert modal */
+.zxh-alert-backdrop{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:22px;background:rgba(0,3,8,.88);backdrop-filter:blur(16px) saturate(.75);-webkit-backdrop-filter:blur(16px) saturate(.75);animation:alertBackdropIn .22s ease-out both}
+.zxh-alert-modal{position:relative;width:min(100%,520px);max-height:min(88svh,760px);overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:clamp(28px,7vw,48px) clamp(20px,6vw,42px);text-align:center;border:1px solid rgba(255,58,91,.72);border-radius:30px;background:radial-gradient(ellipse at 50% 0%,rgba(255,20,67,.25),transparent 56%),linear-gradient(155deg,#170811 0%,#090b12 58%,#03070d 100%);box-shadow:0 0 0 1px rgba(255,30,75,.12),0 0 45px rgba(255,0,55,.32),0 28px 100px rgba(0,0,0,.72),inset 0 1px rgba(255,255,255,.08);transform-origin:center;animation:alertZoomIn .58s cubic-bezier(.16,1.25,.3,1) both,alertShake .42s ease-in-out .58s 1}
+.zxh-alert-close{position:absolute;right:13px;top:13px;width:40px;height:40px;border:1px solid rgba(255,160,180,.2);border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.06);color:#ffdce4}
+.zxh-alert-modal .alert-flash{width:76px;height:76px;margin:2px 0 4px;animation:alertIconPop .6s ease-out both}
+.zxh-alert-modal .alert-flash span{font-size:44px}
+.zxh-alert-brand{font:800 12px Orbitron,sans-serif;letter-spacing:2.2px;color:#fff;text-shadow:0 0 18px rgba(255,32,82,.65)}
+.zxh-alert-kicker{font:700 8px Orbitron,sans-serif;letter-spacing:2px;color:#ff9aad}
+.zxh-alert-modal>strong{font:900 clamp(34px,9vw,58px)/1 Orbitron,sans-serif;letter-spacing:-1.8px;color:#fff;text-shadow:0 0 12px #ff174b,0 0 34px rgba(255,0,60,.75)}
+.zxh-alert-risk{font:800 clamp(12px,3.4vw,16px) Orbitron,sans-serif;letter-spacing:1.5px;color:#ff6683}
+.zxh-alert-modal>p{max-width:390px;margin:2px 0;color:#e9cbd2;font-size:13px;line-height:1.7}
+.zxh-alert-owner{display:grid;gap:5px;margin:2px 0 4px;color:#a78d98;font:600 8px Orbitron,sans-serif;letter-spacing:1.4px}
+.zxh-alert-owner b{color:#ffb8c6;font-size:11px}
+.zxh-alert-owner span{font:500 7px Orbitron,sans-serif;letter-spacing:1.2px;color:#8d7580}
+.zxh-alert-action{width:100%;max-width:320px;min-height:52px;padding:0 18px;border:1px solid rgba(255,164,183,.55);border-radius:15px;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(100deg,#b90d38,#f32957);color:#fff;font:800 10px Orbitron,sans-serif;letter-spacing:1.1px;box-shadow:0 8px 28px rgba(255,0,55,.28),inset 0 1px rgba(255,255,255,.22)}
+@keyframes alertBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes alertZoomIn{0%{opacity:0;transform:scale(.62)}72%{opacity:1;transform:scale(1.045)}100%{opacity:1;transform:scale(1)}}
+@keyframes alertShake{0%,100%{translate:0 0}25%{translate:-5px 0}50%{translate:5px 0}75%{translate:-3px 0}}
+@keyframes alertIconPop{0%{transform:scale(.55);opacity:.4}75%{transform:scale(1.13)}100%{transform:scale(1)}}
+@media(max-width:380px){.zxh-alert-backdrop{padding:14px}.zxh-alert-modal{border-radius:24px;gap:11px;padding:28px 18px}.zxh-alert-modal>p{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.zxh-alert-backdrop,.zxh-alert-modal,.zxh-alert-modal .alert-flash{animation:none}}
