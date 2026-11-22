@@ -80,3 +80,34 @@
 
 .scanner-back{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;margin:0 0 8px;border:1px solid rgba(116,212,235,.16);border-radius:12px;background:rgba(5,24,36,.68);color:#9fd6e5;font:600 8px Orbitron;letter-spacing:1.2px}
 .home-link-box{margin-top:7px}
+
+/* ZXH OFFICIAL — cinematic red radar scanner */
+.radar-panel{margin-top:16px;padding:14px 12px 12px;border-color:rgba(255,36,75,.28);background:linear-gradient(155deg,rgba(31,8,19,.94),rgba(5,8,16,.97));box-shadow:0 0 28px rgba(255,0,58,.09),inset 0 0 28px rgba(255,0,58,.035)}
+.radar-topline,.radar-readout{display:flex;align-items:center;justify-content:space-between;gap:8px;font:600 8px Orbitron;letter-spacing:1px}
+.radar-topline{color:#ff647e;margin:1px 2px 13px}.radar-topline b{font:500 7px Orbitron;color:#9b8790;letter-spacing:.6px}
+.radar-live-dot,.radar-readout i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff174b;box-shadow:0 0 10px #ff174b;margin-right:6px;animation:radarPulse 1s infinite}
+.radar-scope{position:relative;width:min(100%,340px);aspect-ratio:1;border-radius:50%;overflow:hidden;margin:0 auto;border:1px solid rgba(255,45,83,.5);background-color:#07060b;background-image:repeating-radial-gradient(circle at center,transparent 0 17.5%,rgba(255,25,65,.19) 17.8% 18.2%,transparent 18.5% 25%),linear-gradient(90deg,transparent 49.7%,rgba(255,32,71,.23) 50%,transparent 50.3%),linear-gradient(0deg,transparent 49.7%,rgba(255,32,71,.23) 50%,transparent 50.3%);box-shadow:0 0 24px rgba(255,0,55,.16),inset 0 0 35px rgba(255,0,55,.1)}
+.radar-scope:before{content:'';position:absolute;inset:7%;border:1px dashed rgba(255,70,100,.18);border-radius:50%;pointer-events:none}
+.radar-grid-cross{position:absolute;inset:0;background:linear-gradient(45deg,transparent 49.8%,rgba(255,36,75,.1) 50%,transparent 50.2%),linear-gradient(-45deg,transparent 49.8%,rgba(255,36,75,.1) 50%,transparent 50.2%);pointer-events:none}
+.radar-sweep{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(255,0,55,0) 0deg,rgba(255,0,55,.02) 265deg,rgba(255,0,55,.12) 315deg,rgba(255,0,55,.48) 359deg,rgba(255,0,55,0) 360deg);animation:radarRotate 3s linear infinite;transform-origin:center}
+.radar-sweep:after{content:'';position:absolute;left:50%;top:50%;height:49%;width:2px;transform-origin:top center;background:linear-gradient(#ff174b,rgba(255,23,75,.05));box-shadow:0 0 9px #ff174b}
+.radar-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#ff9bad;background:rgba(65,5,22,.9);border:1px solid rgba(255,67,102,.55);box-shadow:0 0 17px rgba(255,0,55,.32);z-index:2}
+.radar-blip{position:absolute;width:6px;height:6px;border-radius:50%;background:#ff294f;box-shadow:0 0 8px 2px rgba(255,0,55,.65);z-index:3;animation:radarBlip 1.6s ease-in-out infinite}
+.blip-1{animation-delay:.3s}.blip-2{animation-delay:.7s}.blip-3{animation-delay:1s}.blip-4{animation-delay:.5s}.blip-5{animation-delay:1.2s}
+.radar-axis{position:absolute;color:rgba(255,124,146,.55);font:600 7px Orbitron;z-index:2}.axis-top{top:7px;left:50%;transform:translateX(-50%)}.axis-right{right:8px;top:50%;transform:translateY(-50%)}.axis-bottom{bottom:7px;left:50%;transform:translateX(-50%)}.axis-left{left:8px;top:50%;transform:translateY(-50%)}
+.radar-scope.paused .radar-sweep,.radar-scope.paused .radar-blip{animation-play-state:paused}
+.radar-scope.boosted .radar-sweep{animation-duration:1s}
+.radar-readout{margin:13px 2px 10px;color:#ff647e;font-size:7px}.radar-readout b{color:#a88c96;font-size:7px}.radar-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.radar-controls button{height:34px;border:1px solid rgba(255,57,91,.32);border-radius:10px;background:rgba(10,7,13,.8);color:#ff8298;font:700 8px Orbitron;letter-spacing:.6px}
+.radar-controls button:active,.radar-controls button.boost-active{background:rgba(255,0,55,.18);box-shadow:0 0 13px rgba(255,0,55,.18)}
+.radar-caption{text-align:center;margin:11px 0 0;color:#80636e;font:500 6px Orbitron;letter-spacing:1px}
+@keyframes radarRotate{to{transform:rotate(360deg)}}@keyframes radarPulse{50%{opacity:.35;box-shadow:0 0 2px #ff174b}}@keyframes radarBlip{0%,100%{opacity:.35;transform:scale(.7)}50%{opacity:1;transform:scale(1.6);box-shadow:0 0 12px 4px rgba(255,0,55,.48)}}
+.result-card{border-color:rgba(255,65,94,.17);background:linear-gradient(150deg,rgba(24,22,32,.96),rgba(5,17,27,.97))}
+.result-signal{min-height:68px;display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:15px;background:linear-gradient(100deg,rgba(255,0,55,.12),rgba(0,129,176,.08));border:1px solid rgba(255,68,98,.18)}
+.result-signal-icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;color:#ff91a6;background:rgba(255,0,55,.12);border:1px solid rgba(255,66,100,.28);box-shadow:0 0 16px rgba(255,0,55,.12)}
+.result-signal>div:nth-child(2){flex:1;min-width:0}.result-signal span,.result-signal b{display:block}.result-signal span{font:600 7px Orbitron;letter-spacing:1px;color:#b07d8a}.result-signal b{font:700 10px Orbitron;color:#f7e9ee;margin-top:6px;letter-spacing:.8px}
+.result-level-dot{width:9px;height:9px;border-radius:50%;background:#ffbc66;box-shadow:0 0 10px currentColor}.result-level-dot.critical,.result-level-dot.high{background:#ff315d}.result-level-dot.low{background:#38e6ae}
+.scanned-target{margin:10px 1px 2px;padding:10px 11px;border-radius:12px;background:rgba(1,10,17,.6);border:1px solid rgba(133,193,214,.1)}
+.scanned-target small{display:block;color:#7593a2;font:600 7px Orbitron;letter-spacing:1.3px;margin-bottom:6px}.scanned-target span{display:block;color:#c9e6ef;font-size:9px;line-height:1.6;overflow-wrap:anywhere}
+.verdict{border-bottom:1px solid rgba(142,193,211,.1);margin-bottom:10px}.finding{padding:8px 9px;border-radius:11px;background:rgba(2,12,20,.44);border:1px solid rgba(121,190,212,.07)}
+@media(prefers-reduced-motion:reduce){.radar-sweep,.radar-blip,.radar-live-dot,.radar-readout i{animation-duration:10s!important}}
