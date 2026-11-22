@@ -298,3 +298,45 @@ body{overflow-x:hidden}
 
 .welcome-install{min-height:38px;padding:0 13px;border:1px solid rgba(255,70,105,.48);border-radius:999px;background:rgba(255,35,78,.13);color:#ffb3c2;font:800 8px Orbitron,sans-serif;letter-spacing:.8px;box-shadow:0 0 16px rgba(255,0,55,.1)}
 .welcome-topline{display:flex;align-items:center;justify-content:space-between;gap:12px}
+
+
+/* ZXH OFFICIAL — Security Guard Shield layer */
+.guard-status-panel{position:relative;display:flex;align-items:center;gap:15px;min-height:112px;margin:0 0 18px;padding:17px 18px;overflow:hidden;border:1px solid rgba(255,65,99,.28);border-radius:22px;background:radial-gradient(ellipse at 12% 50%,rgba(255,28,75,.18),transparent 45%),linear-gradient(120deg,rgba(31,8,19,.96),rgba(8,12,20,.96) 62%,rgba(15,9,18,.96));box-shadow:0 12px 34px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.05),0 0 25px rgba(255,0,60,.07)}
+.guard-status-panel:after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.045) 50%,transparent 68%);transform:translateX(-110%);animation:guardScanShine 6s ease-in-out infinite}
+.guard-status-emblem{position:relative;flex:0 0 66px;width:66px;height:72px;display:grid;place-items:center;color:#ffdce4;filter:drop-shadow(0 0 13px rgba(255,42,87,.6));background:linear-gradient(145deg,rgba(255,40,85,.2),rgba(98,8,34,.1));clip-path:polygon(50% 0,94% 17%,87% 70%,50% 100%,13% 70%,6% 17%);border:1px solid rgba(255,92,125,.45)}
+.guard-status-emblem>svg{width:34px;height:34px;z-index:2}
+.guard-orbit{position:absolute;inset:5px;border:1px solid rgba(255,74,111,.38);border-radius:50%;animation:guardOrbit 8s linear infinite}
+.guard-orbit.orbit-two{inset:0 13px;border-color:rgba(255,190,203,.2);animation-direction:reverse;animation-duration:5s}
+.guard-status-copy{min-width:0;display:grid;gap:6px;position:relative;z-index:1}
+.guard-status-copy small{font:700 8px Orbitron,sans-serif;letter-spacing:1.4px;color:#ff91a8}
+.guard-status-copy b{font:900 clamp(13px,2.7vw,18px) Orbitron,sans-serif;letter-spacing:.4px;color:#fff;text-shadow:0 0 16px rgba(255,40,88,.32)}
+.guard-status-copy span{font:600 7px/1.6 Orbitron,sans-serif;letter-spacing:.65px;color:#b99ba5}
+.guard-live{position:absolute;right:15px;top:14px;display:flex;align-items:center;gap:5px;color:#ff9bae;font:800 7px Orbitron,sans-serif;letter-spacing:1px}
+.guard-live i{width:6px;height:6px;border-radius:50%;background:#ff315d;box-shadow:0 0 9px #ff315d;animation:guardPulse 1.3s infinite}
+@keyframes guardPulse{50%{opacity:.35;box-shadow:0 0 2px #ff315d}}
+@keyframes guardOrbit{to{transform:rotate(360deg)}}
+@keyframes guardScanShine{0%,65%{transform:translateX(-110%)}90%,100%{transform:translateX(110%)}}
+@media(min-width:760px){
+ .app-header{max-width:1120px;margin-left:auto;margin-right:auto}
+ .dashboard,.scan-page,.simple-page{max-width:1040px;margin-left:auto;margin-right:auto}
+ .welcome-screen{max-width:700px;margin-left:auto;margin-right:auto}
+ .greeting h1,.page-title h1{font-size:clamp(28px,3vw,38px)}
+ .home-link-box,.scan-form{padding:28px}
+ .home-link-heading b{font-size:17px}.home-link-heading small{font-size:13px}
+ .home-url-input,.scan-form textarea{font-size:16px}
+ .scan-button{min-height:56px;font-size:13px}
+ .risk-grid{gap:16px}.risk-tile{padding:20px 18px}.risk-tile span{font-size:13px}.risk-tile b{font-size:28px}.risk-tile small{font-size:11px}
+ .summary-row{min-height:68px;padding:13px 17px}.summary-row b{font-size:13px}.summary-row small{font-size:11px}.summary-row strong{font-size:11px}
+ .section-title h2{font-size:18px}
+ .guard-status-panel{min-height:132px;padding:22px 26px;gap:22px}.guard-status-emblem{width:78px;height:84px;flex-basis:78px}.guard-status-copy small{font-size:10px}.guard-status-copy span{font-size:9px}
+ .bottom-nav{max-width:760px;left:50%;transform:translateX(-50%);width:calc(100% - 56px)}
+}
+@media(max-width:420px){
+ .guard-status-panel{gap:10px;padding:14px 12px;min-height:100px}
+ .guard-status-emblem{flex-basis:55px;width:55px;height:61px}
+ .guard-status-copy small{font-size:7px;letter-spacing:.8px}
+ .guard-status-copy b{font-size:11px;letter-spacing:0}
+ .guard-status-copy span{font-size:6px;letter-spacing:.25px}
+ .guard-live{right:10px;top:9px;font-size:6px}
+}
+@media(prefers-reduced-motion:reduce){.guard-status-panel:after,.guard-orbit,.guard-live i{animation:none}}
