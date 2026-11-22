@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Bell, Check, ChevronRight, CircleAlert, Clock3,
+  ArrowLeft, ArrowRight, Bell, Check, ChevronRight, CircleAlert, Clock3, Download,
   Globe2, History, Home, Link2, LockKeyhole, MessageSquareText, ScanLine,
   Settings, Shield, ShieldAlert, ShieldCheck, Sparkles, TrendingUp, X
 } from 'lucide-react';
@@ -88,6 +88,27 @@ function App() {
   const [homeUrl, setHomeUrl] = useState('');
   const [result, setResult] = useState<Result | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [installDialog, setInstallDialog] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+  useEffect(() => {
+    const beforeInstall = (event: Event) => { event.preventDefault(); setInstallPrompt(event); };
+    const installed = () => { setIsInstalled(true); setInstallPrompt(null); setInstallDialog(false); };
+    window.addEventListener('beforeinstallprompt', beforeInstall);
+    window.addEventListener('appinstalled', installed);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+    setIsInstalled(standalone);
+    return () => { window.removeEventListener('beforeinstallprompt', beforeInstall); window.removeEventListener('appinstalled', installed); };
+  }, []);
+  const openInstallDialog = () => setInstallDialog(true);
+  const installApp = async () => {
+    if (!installPrompt) return;
+    try {
+      await (installPrompt as any).prompt();
+      const choice = await (installPrompt as any).userChoice;
+      if (choice?.outcome === 'accepted') { setInstallDialog(false); setInstallPrompt(null); }
+    } catch { setNotice('Install prompt is not available yet. Use Chrome menu → Add to Home screen.'); }
+  };
   const [history, setHistory] = useState<Result[]>(() => { try { const saved = localStorage.getItem('zxh-cyberguard-history-v1'); return saved ? (JSON.parse(saved) as Result[]).slice(0, 30) : []; } catch { return []; } });
   const [notice, setNotice] = useState('');
   useEffect(() => { try { localStorage.setItem('zxh-cyberguard-history-v1', JSON.stringify(history.slice(0, 30))); } catch { /* storage may be unavailable */ } }, [history]);
@@ -146,6 +167,7 @@ function App() {
   const riskCounts = useMemo(() => ({ critical: history.filter(x => x.level === 'critical').length, high: history.filter(x => x.level === 'high').length, medium: history.filter(x => x.level === 'medium').length }), [history]);
   return <main className="app">
     <div className="ambient a1"/><div className="ambient a2"/><div className="ambient a3"/>
+    {installDialog && <div className="install-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) setInstallDialog(false); }}><section className="install-modal" role="dialog" aria-modal="true" aria-labelledby="install-title"><button className="install-close" onClick={() => setInstallDialog(false)} aria-label="Close install dialog"><X size={20}/></button><div className="install-icon"><ShieldCheck size={34}/></div><small>ZXH OFFICIAL • CYBERGUARD</small><h2 id="install-title">{isInstalled ? "APP ALREADY INSTALLED" : "INSTALL CYBERGUARD"}</h2><p>Get the ZXH OFFICIAL security scanner on your home screen for a faster, app-like experience.</p>{installPrompt ? <button className="install-confirm" onClick={() => void installApp()}>INSTALL APP <Download size={17}/></button> : <div className="install-steps"><b>INSTALL FROM CHROME</b><span>1. Tap the ⋮ menu in Chrome.</span><span>2. Choose “Install app” or “Add to Home screen”.</span><span>3. Confirm to add ZXH CyberGuard.</span></div>}<button className="install-later" onClick={() => setInstallDialog(false)}>MAYBE LATER</button><footer>POWERED BY ZXH OFFICIAL · CREATED BY ZULQARNAIN X HAIDER</footer></section></div>}
     {screen === 'welcome' && <section className="welcome-screen">
       <div className="welcome-topline"><span>ZXH OFFICIAL</span><span className="top-pulse"/></div>
       <div className="welcome-visual"><div className="umbrella">◈</div><div className="hero-shield"><ShieldCheck size={36}/></div><Wave/></div>
@@ -156,7 +178,7 @@ function App() {
     {screen !== 'welcome' && <>
       <header className="app-header">
         <button className="brand-lockup" onClick={() => setScreen('home')}><span className="brand-symbol"><ShieldCheck size={19}/></span><span><b>ZXH <i>OFFICIAL</i></b><small>CYBERGUARD SHIELD</small></span></button>
-        <button className="icon-btn" aria-label="Notifications" onClick={() => setNotice('You are all caught up.')}><Bell size={18}/></button>
+        <div className="header-actions"><button className="install-app-button" onClick={openInstallDialog} disabled={isInstalled}>{isInstalled ? <Check size={15}/> : <Download size={15}/>}<span>{isInstalled ? "APP INSTALLED" : "INSTALL APP"}</span></button><button className="icon-btn" aria-label="Notifications" onClick={() => setNotice('You are all caught up.')}><Bell size={18}/></button></div>
       </header>
       {screen === 'home' && <section className="dashboard page-in">
         <div className="greeting"><div><small>WELCOME BACK</small><h1>Cyber Defender</h1><p>Your digital safety overview</p></div><div className="avatar"><ShieldCheck/></div></div>
