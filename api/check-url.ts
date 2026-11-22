@@ -1,3 +1,5 @@
+declare const process: { env: Record<string, string | undefined> };
+
 const OPENPHISH_FEED = "https://openphish.com/feed.txt";
 const URLHAUS_API = "https://urlhaus-api.abuse.ch/v1/url/";
 
