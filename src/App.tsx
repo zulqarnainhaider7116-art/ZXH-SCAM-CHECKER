@@ -12,8 +12,7 @@ type Result = { verdict: string; level: Finding['level']; findings: Finding[]; v
 
 function inspect(value: string): Result {
   const text = value.trim();
-  const lower = text.toLowerCase();
-  const findings: Finding[] = [];
+    const findings: Finding[] = [];
   const add = (level: Finding['level'], title: string, detail: string) => findings.push({ level, title, detail });
   if (/(otp|password|pin|cvv|bank details|verification code|پاس ورڈ|او ٹی پی)/i.test(text))
     add('critical', 'Sensitive information request', 'Never share OTPs, passwords, PINs, CVV or banking details through a message or link.');
@@ -187,7 +186,7 @@ function App() {
           <div className="risk-tile high"><span>High</span><b>{riskCounts.high}</b><small>Needs action</small></div>
           <div className="risk-tile medium"><span>Medium</span><b>{riskCounts.medium}</b><small>Stay alert</small></div>
         </div>
-        <div className="section-title"><h2>Statistical Summary</h2><span>See all</span></div>
+        <div className="section-title"><h2>Statistical Summary</h2><button className="history-see-all" onClick={() => navigateTo('history')}>See all <ArrowRight size={14}/></button></div>
         <div className="summary-list">
           <div className="summary-row"><span className="summary-icon"><ScanLine/></span><span><b>Daily Scanned</b><small>Last 24 hours</small></span><strong>{history.length} Links</strong></div>
           <div className="summary-row"><span className="summary-icon"><Clock3/></span><span><b>Weekly Scanned</b><small>Last 7 days</small></span><strong>{history.length} Links</strong></div>
