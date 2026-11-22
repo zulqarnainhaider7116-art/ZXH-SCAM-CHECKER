@@ -17,6 +17,15 @@ function analyse(message: string) {
     add("high", "Payment request detected", "Verify payment requests using an official number or app you open yourself.");
   if (/(nccia|fia|police|bank|easypaisa|jazzcash|nadra|government|حکومت|بینک)/i.test(message))
     add("medium", "Organisation name mentioned", "Names and logos can be copied. Contact the organisation through its official channel.");
+  const scamPatterns: Array<{ regex: RegExp; level: Level; title: string; detail: string }> = [
+    { regex: /(?:free|instant|unlimited|cheap|buy|get)\s*(?:instagram\s*)?(?:followers?|likes?|views?|comments?)/i, level: "high", title: "Fake social engagement offer", detail: "Free or unusually cheap followers, likes and views are commonly used to lure users into fake login pages, surveys or payment traps." },
+    { regex: /(?:free|instant|unlimited|cheap|get)\s*(?:youtube\s*)?(?:subscribers?|watch\s*time|views?)/i, level: "high", title: "Fake YouTube growth offer", detail: "Free subscriber or watch-time offers may be used to steal account credentials or collect personal information." },
+    { regex: /(?:free|claim|get|generator|unlimited)\s*(?:free\s*)?(?:fire\s*)?(?:diamonds?|diamond\s*generator)|(?:free|claim|get|generator|unlimited)\s*(?:pubg\s*)?(?:uc|unknown\s*cash)/i, level: "high", title: "Free game currency bait", detail: "Free Free Fire diamonds or PUBG UC generators are a common scam lure. Never share game passwords, OTPs or payment details." },
+    { regex: /(?:free|claim|get|unlimited|bonus)\s*(?:internet|mobile\s*data|data\s*pack|mbs?|gb|4g|5g)|(?:internet|data)\s*(?:free|offer|reward)/i, level: "high", title: "Free internet / MB offer", detail: "Free internet and data links may imitate mobile networks to collect phone numbers, account credentials or survey responses." },
+    { regex: /(?:free|claim|get|win|exclusive)\s*(?:gift|giveaway|prize|reward|voucher|cash)/i, level: "medium", title: "Reward / giveaway bait", detail: "Unexpected prizes and rewards are often used to collect personal information or demand fake processing fees." },
+    { regex: /(?:instagram|facebook|tiktok|youtube|pubg|free\s*fire).{0,45}(?:login|verify|claim|free|reward|generator)/i, level: "medium", title: "Platform or game impersonation bait", detail: "A familiar platform or game name combined with a login, verification or reward claim may be impersonation. Verify through the official app." }
+  ];
+  for (const pattern of scamPatterns) if (pattern.regex.test(message)) add(pattern.level, pattern.title, pattern.detail);
   if (!findings.length)
     add("low", "No obvious warning pattern", "No common scam pattern was detected. This cannot prove the message or sender is genuine.");
   const level: Level = findings.some(x => x.level === "critical") ? "critical" : findings.some(x => x.level === "high") ? "high" : findings.some(x => x.level === "medium") ? "medium" : "low";
