@@ -1,3 +1,4 @@
+import { lookup } from "node:dns/promises";
 type Level = "critical" | "high" | "medium" | "low";
 type Finding = { level: Level; title: string; detail: string; evidence?: string[] };
 const MAX_BYTES = 1_200_000;
@@ -11,6 +12,17 @@ function publicHttp(value:string) {
     if(h==="::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80:")) return false;
     return true;
   } catch { return false; }
+}
+async function assertPublicDestination(url:URL) {
+ const host=url.hostname.replace(/^\[|\]$/g,"");
+ const records=await lookup(host,{all:true,verbatim:true});
+ if(!records.length)throw new Error("DNS_LOOKUP_FAILED");
+ for(const record of records){
+  const ip=record.address.toLowerCase();
+  if(record.family===4){
+   if(/^(0|10|127)\./.test(ip)||/^169\.254\./.test(ip)||/^192\.168\./.test(ip)||/^172\.(1[6-9]|2\d|3[01])\./.test(ip)||/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip)||/^192\.0\.0\./.test(ip)||/^198\.(18|19)\./.test(ip)||/^198\.51\.100\./.test(ip)||/^203\.0\.113\./.test(ip)||/^(22[4-9]|23\d|24\d|25[0-5])\./.test(ip))throw new Error("UNSAFE_DESTINATION");
+  } else if(ip==="::"||ip==="::1"||ip.startsWith("fc")||ip.startsWith("fd")||ip.startsWith("fe80:")||ip.startsWith("ff")||ip.startsWith("::ffff:"))throw new Error("UNSAFE_DESTINATION");
+ }
 }
 function decode(s:string) { return s.replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Math.min(0x10ffff,Number(n)))).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))); }
 function plain(html:string) {
@@ -39,9 +51,9 @@ function inspectText(text:string, base:URL, links:string[], forms:string[], ifra
  ];
  for(const [re,level,title,detail] of checks){const m=text.match(re);if(m)add(level,title,detail,[m[0]]);}
 
- if(/(?:fake|bot|instant|unlimited)\\s*(?:followers?|subscribers?|likes?|views?)/i.test(text))add("high","Fake follower / engagement claim","The page advertises fake or automated social engagement. Such offers often lead to credential theft, spam or account compromise.",[text.match(/(?:fake|bot|instant|unlimited)\\s*(?:followers?|subscribers?|likes?|views?)/i)?.[0]||""]);
+ if(/(?:fake|bot|instant|unlimited)\s*(?:followers?|subscribers?|likes?|views?)/i.test(text))add("high","Fake follower / engagement claim","The page advertises fake or automated social engagement. Such offers often lead to credential theft, spam or account compromise.",[text.match(/(?:fake|bot|instant|unlimited)\s*(?:followers?|subscribers?|likes?|views?)/i)?.[0]||""]);
  if(/(?:free|muft|مفت).{0,45}(?:packages?|internet|mbs?|data|balance|پیکج|انٹرنیٹ|ایم بی)/i.test(text))add("high","Free mobile package / data claim","Unexpected free package or data claims can imitate telecom promotions and collect phone numbers or account credentials.",[text.match(/(?:free|muft|مفت).{0,45}(?:packages?|internet|mbs?|data|balance|پیکج|انٹرنیٹ|ایم بی)/i)?.[0]||""]);
- if(/(?:نواز\\s*شریف|nawaz\\s*sharif).{0,70}(?:13|۱۳|روپے|ہزار|money|cash)/i.test(text))add("high","Public-figure cash giveaway claim","A cash offer attributed to a public figure is unverified until confirmed through an official government source.",[text.match(/(?:نواز\\s*شریف|nawaz\\s*sharif).{0,70}(?:13|۱۳|روپے|ہزار|money|cash)/i)?.[0]||""]);
+ if(/(?:نواز\s*شریف|nawaz\s*sharif).{0,70}(?:13|۱۳|روپے|ہزار|money|cash)/i.test(text))add("high","Public-figure cash giveaway claim","A cash offer attributed to a public figure is unverified until confirmed through an official government source.",[text.match(/(?:نواز\s*شریف|nawaz\s*sharif).{0,70}(?:13|۱۳|روپے|ہزار|money|cash)/i)?.[0]||""]);
  if(/(?:mobile|phone|device|موبائل).{0,55}(?:control|monitor|access|کنٹرول).{0,45}(?:browser|online|براوزر)|(?:browser|براوزر).{0,55}(?:mobile|phone|موبائل).{0,45}(?:control|access|کنٹرول)/i.test(text))add("high","Mobile control through browser claim","This wording may be a remote-access lure. The scanner checks page text and form metadata; it does not grant or test device control.",[text.match(/(?:mobile|phone|device|موبائل).{0,55}(?:control|monitor|access|کنٹرول).{0,45}(?:browser|online|براوزر)/i)?.[0]||""]);
  const host=base.hostname.toLowerCase();
  if(links.length){const suspicious=links.filter(x=>{try{const u=new URL(x);return u.hostname!==host && !u.hostname.endsWith("."+host)}catch{return true}});if(suspicious.length)add("medium","External destinations found","The page contains links to other domains. Review each destination before opening.",suspicious.slice(0,5));}
@@ -65,6 +77,7 @@ export default async function handler(req:any,res:any) {
  try{
   for(let i=0;i<5;i++){
    if(!publicHttp(current.toString()))throw new Error("UNSAFE_REDIRECT");
+   await assertPublicDestination(current);
    response=await fetch(current.toString(),{method:"GET",redirect:"manual",headers:{"User-Agent":UA,Accept:"text/html,application/xhtml+xml;q=0.9,*/*;q=0.1"},signal:AbortSignal.timeout(8500)});
    if([301,302,303,307,308].includes(response.status)){
     const loc=response.headers.get("location");if(!loc)break;
