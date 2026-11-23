@@ -50,6 +50,8 @@ function getSafetyActions(result: Result): string[] {
     ];
     if (hasCredentialRisk) actions.unshift('If you already shared a password or OTP, change the affected password through the official app and secure the account immediately.');
     if (hasPaymentRisk) actions.push('If you already sent money, contact your bank or wallet provider immediately using its official helpline and request a transaction dispute.');
+    if (result.findings.some(f => /remote.access|screen.shar|apk|download|application|device permission/i.test(f.title + " " + f.detail))) actions.push('If you installed an app or granted Accessibility, SMS, notification, screen-sharing or device-admin access, disconnect from the session, uninstall the untrusted app, revoke its permissions and run your device security check.');
+    if (result.findings.some(f => /crypto|wallet|seed phrase|private key/i.test(f.title + " " + f.detail))) actions.push('If you exposed a wallet recovery phrase or private key, treat that wallet as compromised. From a clean trusted device, move remaining assets to a newly created wallet and never reuse the exposed secret.');
     return actions;
   }
   if (result.level === 'medium') return [
