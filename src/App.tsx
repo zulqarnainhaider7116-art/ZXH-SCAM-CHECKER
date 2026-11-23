@@ -75,6 +75,27 @@ function RadarScanner() {
 
 function App() {
   const [screen, setScreen] = useState<Screen>('welcome');
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [installHelp, setInstallHelp] = useState(false);
+  const [installBusy, setInstallBusy] = useState(false);
+  const isAppInstalled = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true || document.referrer.startsWith('android-app://');
+  useEffect(() => {
+    const onPrompt = (event: Event) => { event.preventDefault(); setInstallPrompt(event); };
+    const onInstalled = () => { setShowInstallModal(false); setInstallPrompt(null); };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    window.addEventListener('appinstalled', onInstalled);
+    const timer = window.setTimeout(() => { if (!isAppInstalled()) setShowInstallModal(true); }, 5000);
+    return () => { window.clearTimeout(timer); window.removeEventListener('beforeinstallprompt', onPrompt); window.removeEventListener('appinstalled', onInstalled); };
+  }, []);
+  const installApp = async () => {
+    if (!installPrompt) { setInstallHelp(true); return; }
+    setInstallBusy(true);
+    try { await installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null); setShowInstallModal(false); }
+    catch { setInstallHelp(true); }
+    finally { setInstallBusy(false); }
+  };
+
   const radarRef = useRef<HTMLDivElement | null>(null);
   const navigateTo = (next: Screen) => {
     if (next !== screen) window.history.pushState({ zxhScreen: next }, '', '#' + next);
@@ -281,6 +302,19 @@ function App() {
       </section>}
       {screen === 'history' && <section className="simple-page page-in"><div className="page-title"><small>YOUR ACTIVITY</small><h1>Scan History</h1><p>Recent checks on this device</p></div>{history.length ? history.map((item,i)=><div className="history-item" key={i}><span className={'history-dot ' + item.level}/><div><b>{item.verdict}</b><small>{item.value.slice(0,55)}</small></div><ChevronRight/></div>) : <div className="empty-state"><History size={32}/><b>No scans yet</b><p>Your recent link checks will appear here.</p><button onClick={() => navigateTo('scan')}>Start scanning</button></div>}</section>}
       {screen === 'settings' && <section className="simple-page page-in"><div className="page-title"><small>APP PREFERENCES</small><h1>Settings</h1><p>Privacy and app information</p></div><div className="settings-card"><ShieldCheck/><div><b>Local privacy mode</b><small>Message text is sent to the ZXH message-analysis API for pattern checks and is not stored.</small></div><span className="on-pill">ON</span></div><div className="settings-card"><Bell/><div><b>Notifications</b><small>Notifications are not required for link scanning.</small></div></div><div className="settings-card"><LockKeyhole/><div><b>Security notice</b><small>This is not an official NCCIA or malware verification service.</small></div></div></section>}
+      {showInstallModal && !isAppInstalled() && <div className="install-backdrop" role="dialog" aria-modal="true" aria-labelledby="install-title">
+        <div className="install-modal">
+          <button className="install-close" aria-label="Close install prompt" onClick={()=>setShowInstallModal(false)}><X size={18}/></button>
+          <div className="install-icon"><ShieldCheck size={30}/></div>
+          <small>ZXH OFFICIAL • CYBERGUARD</small>
+          <h2 id="install-title">Install CyberGuard</h2>
+          <p>Keep your security shield one tap away.</p>
+          {installHelp && <div className="install-steps"><b>HOW TO INSTALL</b><span>Android Chrome: tap ⋮ menu → Install app / Add to Home screen → confirm.</span><span>iPhone Safari: tap Share → Add to Home Screen → Add.</span></div>}
+          <button className="install-confirm" onClick={installApp} disabled={installBusy}>{installBusy ? 'PLEASE WAIT…' : installPrompt ? 'INSTALL APP NOW' : 'HOW TO INSTALL'}</button>
+          <button className="install-later" onClick={()=>setShowInstallModal(false)}>MAYBE LATER</button>
+          <footer>FREE • SECURE • ZXH OFFICIAL</footer>
+        </div>
+      </div>}
       <nav className="bottom-nav"><button className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}><Home/><span>Home</span></button><button className={screen === 'scan' ? 'active' : ''} onClick={() => setScreen('scan')}><ScanLine/><span>Scan</span></button><button className={screen === 'history' ? 'active' : ''} onClick={() => navigateTo('history')}><History/><span>History</span></button><button className={screen === 'settings' ? 'active' : ''} onClick={() => navigateTo('settings')}><Settings/><span>Settings</span></button></nav>
       <footer className="site-credit">
         <b>ZXH OFFICIAL</b><span>CREATED BY ZULQARNAIN X HAIDER</span>
