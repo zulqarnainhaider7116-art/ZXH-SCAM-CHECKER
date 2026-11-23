@@ -38,6 +38,32 @@ function extractFirstUrl(value: string): string | null {
   return /^https?:\/\//i.test(cleaned) ? cleaned : 'https://' + cleaned;
 }
 
+function getSafetyActions(result: Result): string[] {
+  const hasCredentialRisk = result.findings.some(f => /otp|password|pin|cvv|bank|credential|sensitive/i.test(f.title + " " + f.detail));
+  const hasPaymentRisk = result.findings.some(f => /payment|money|fee|cash reward/i.test(f.title + " " + f.detail));
+  if (result.level === 'critical' || result.level === 'high') {
+    const actions = [
+      result.contentType === 'url' ? 'Do not open this destination again. Close the tab if it is already open.' : 'Do not reply, forward the message, or follow any instructions in it.',
+      'Do not enter CNIC, OTP, passwords, recovery codes, card details, or other personal information.',
+      'Verify the claim through the organisation’s official app or website that you open yourself — never through the supplied link.',
+      'Block and report the sender or page if the message is unsolicited.'
+    ];
+    if (hasCredentialRisk) actions.unshift('If you already shared a password or OTP, change the affected password through the official app and secure the account immediately.');
+    if (hasPaymentRisk) actions.push('If you already sent money, contact your bank or wallet provider immediately using its official helpline and request a transaction dispute.');
+    return actions;
+  }
+  if (result.level === 'medium') return [
+    'Pause before clicking, paying, downloading, or sharing information.',
+    'Check the exact sender identity and registered domain using an independent official source.',
+    'Treat rewards, urgent warnings, and requests for fees as unverified until confirmed.'
+  ];
+  return [
+    'No strong warning pattern was identified in the checks that completed.',
+    'This is not a safety certificate: avoid sharing sensitive information unless you independently trust the destination.',
+    'For important accounts or payments, open the official app or type the known website address yourself.'
+  ];
+}
+
 function detectContentType(value: string): 'url' | 'message' | 'message_with_link' {
   const text = value.trim();
   const urlPattern = /(https?:[/]{2}|www[.])[^ ]+|[a-z0-9-]+[.][a-z0-9-]+(?:[.][a-z0-9-]+)*(?:[/][^ ]*)?/i;
@@ -275,7 +301,7 @@ function App() {
         {scanning && <div ref={radarRef} className="scan-progress-anchor"><RadarScanner/></div>}
         {result && <div className="result-area page-in">
           <div className="section-title"><h2>Threat Analysis Report</h2><span>JUST NOW</span></div>
-          {(result.level === "critical" || result.level === "high") && !alertDismissed && <div className="zxh-alert-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) setAlertDismissed(true); }}><section className="zxh-alert-modal" role="alertdialog" aria-modal="true" aria-labelledby="zxh-alert-title"><button className="zxh-alert-close" aria-label="Close alert" onClick={() => setAlertDismissed(true)}><X size={21}/></button><div className="alert-flash"><span>⚠</span></div><div className="zxh-alert-brand">𖤍 ZXH OFFICIAL 𖤍</div><small className="zxh-alert-kicker">CYBERGUARD SECURITY WARNING</small><strong id="zxh-alert-title">THREAT ALERT</strong><b className="zxh-alert-risk">{result.level.toUpperCase()} RISK DETECTED</b><p>{result.findings.length} suspicious indicator(s) found. Do not open the link or share passwords, OTPs or payment details.</p><div className="zxh-alert-owner">PROTECTED BY <b>ZXH OFFICIAL</b><span>CREATED BY ZULQARNAIN X HAIDER</span></div><button className="zxh-alert-action" onClick={() => { setAlertDismissed(true); window.setTimeout(() => document.querySelector(".result-card")?.scrollIntoView({behavior:"smooth",block:"start"}), 80); }}>VIEW FULL REPORT <ArrowRight size={17}/></button></section></div>}<div className="result-card glass-panel">
+          {(result.level === "critical" || result.level === "high") && !alertDismissed && <div className="zxh-alert-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) setAlertDismissed(true); }}><section className="zxh-alert-modal" role="alertdialog" aria-modal="true" aria-labelledby="zxh-alert-title"><button className="zxh-alert-close" aria-label="Close alert" onClick={() => setAlertDismissed(true)}><X size={21}/></button><div className="alert-flash"><span>⚠</span></div><div className="zxh-alert-brand">𖤍 ZXH OFFICIAL 𖤍</div><small className="zxh-alert-kicker">CYBERGUARD SECURITY WARNING</small><strong id="zxh-alert-title">THREAT ALERT</strong><b className="zxh-alert-risk">{result.level.toUpperCase()} RISK DETECTED</b><p>{result.findings.length} security indicator(s) detected. Stop interacting with this content and review the response steps before taking any action.</p><div className="zxh-alert-owner">PROTECTED BY <b>ZXH OFFICIAL</b><span>CREATED BY ZULQARNAIN X HAIDER</span></div><button className="zxh-alert-action" onClick={() => { setAlertDismissed(true); window.setTimeout(() => document.querySelector(".result-card")?.scrollIntoView({behavior:"smooth",block:"start"}), 80); }}>VIEW FULL REPORT <ArrowRight size={17}/></button></section></div>}<div className="result-card glass-panel">
             <div className="result-signal"><div className="result-signal-icon"><ShieldCheck size={25}/></div><div><span>ZXH OFFICIAL • THREAT ANALYSIS</span><b>SCAN COMPLETED</b></div><i className={'result-level-dot ' + result.level}/></div><div className="scanned-target"><small>{result.contentType === "url" ? "SCANNED WEBSITE / URL" : result.contentType === "message_with_link" ? "SCANNED TEXT MESSAGE • LINK FOUND" : "SCANNED TEXT MESSAGE"}</small><span>{result.value}</span><em className="content-type-chip">{result.contentType === "url" ? "URL SCAN" : result.contentType === "message_with_link" ? "MESSAGE + LINK SCAN" : "MESSAGE SCAN"}</em></div>
             {result.pageAnalysis && <div className="page-intel">
               <div className="page-intel-head"><b>DEEP WEBSITE CONTENT INSPECTION</b><span>{result.pageAnalysis.status === 'inspected' ? 'HTML INSPECTED' : 'PARTIAL CHECK'}</span></div>
@@ -292,6 +318,12 @@ function App() {
               <div className="page-intel-foot">Inspected {result.pageAnalysis.contentLength || 0} HTML characters • Forms are never submitted • Page scripts are never executed</div>
             </div>}
             <div className={'verdict ' + result.level}><span className="verdict-icon"><CircleAlert size={19}/></span><div><b>{result.verdict}</b><small>{result.level.toUpperCase()} RISK INDICATORS</small></div></div>
+            <section className={'response-protocol ' + result.level}>
+              <div className="response-protocol-head"><span>𖤍 ZXH OFFICIAL • RESPONSE PROTOCOL</span><b>{result.level === 'critical' || result.level === 'high' ? 'ACTION REQUIRED' : result.level === 'medium' ? 'VERIFY FIRST' : 'STAY CAUTIOUS'}</b></div>
+              <h3>{result.level === 'critical' || result.level === 'high' ? 'Protect your accounts and money now' : result.level === 'medium' ? 'Do not trust the claim yet' : 'Keep your normal security checks active'}</h3>
+              <ol>{getSafetyActions(result).map((action,i)=><li key={i}><span>{String(i+1).padStart(2,'0')}</span><p>{action}</p></li>)}</ol>
+              <small>Guidance is based on the indicators found in this scan. If you have already interacted with the sender or page, follow the relevant recovery steps immediately.</small>
+            </section>
             <div className="finding-list">{result.findings.map((f,i) => <div className="finding" key={i}><span>•</span><div><b>{f.title}</b><p>{f.detail}</p></div></div>)}</div>
             {result.domainRegistration ? <div className="domain-intel"><b>DOMAIN REGISTRATION INTELLIGENCE</b><span><strong>{result.domainRegistration.domain}</strong></span>{result.domainRegistration.status === 'found' ? <><span>Registration: {result.domainRegistration.registeredAt ? new Date(result.domainRegistration.registeredAt).toLocaleDateString() : 'Date not published'}</span><span>Domain age: {typeof result.domainRegistration.ageDays === 'number' ? result.domainRegistration.ageDays + ' days' : 'Not disclosed'}</span>{result.domainRegistration.registrar ? <span>Registrar: {result.domainRegistration.registrar}</span> : null}</> : <span className="source-off">Registration details {result.domainRegistration.status === 'not_found' ? 'not found' : 'unavailable'} from RDAP.</span>}</div> : null}
             {(result.checkedSources?.length || result.unavailableSources?.length) ? <div className="source-coverage"><b>THREAT FEED COVERAGE</b>{result.checkedSources?.map(name => <span className="source-ok" key={name}>✓ {name} — checked</span>)}{result.unavailableSources?.map(name => <span className="source-off" key={name}>! {name} — unavailable</span>)}</div> : null}
