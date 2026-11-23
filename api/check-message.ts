@@ -17,6 +17,10 @@ function analyse(message: string) {
     add("high", "Payment request detected", "Verify payment requests using an official number or app you open yourself.");
   if (/(nccia|fia|police|bank|easypaisa|jazzcash|nadra|government|حکومت|بینک)/i.test(message))
     add("medium", "Organisation name mentioned", "Names and logos can be copied. Contact the organisation through its official channel.");
+  if (/(?:mobile\s*control|control\s*your\s*(?:mobile|phone)\s*(?:with\s*)?browser|control\s*(?:your\s*)?mobile.{0,45}browser|موبائل\s*کنٹرول)/i.test(message))
+    add("high", "Mobile control / browser access claim", "A message claiming that a browser can control your phone may be a remote-access lure. Do not install an APK or grant Accessibility, screen-sharing, SMS or notification permissions from an unverified source.");
+  if (/(?:nawaz\s*sharif|نواز\s*شریف).{0,80}(?:13[,.]?000|۱۳[,.]?۰۰۰|13\s*thousand|13000|روپے|ہزار)|(?:13[,.]?000|۱۳[,.]?۰۰۰|13000).{0,70}(?:rupees|pkr|rs|روپے|نواز)/i.test(message))
+    add("high", "Unverified government / public-figure cash reward", "Cash rewards attributed to public figures or government schemes must be verified on an official government website. Do not share CNIC, OTP, bank details or pay a registration fee.");
   const scamPatterns: Array<{ regex: RegExp; level: Level; title: string; detail: string }> = [
     { regex: /(?:free|instant|unlimited|cheap|buy|get)\s*(?:instagram\s*)?(?:followers?|likes?|views?|comments?)/i, level: "high", title: "Fake social engagement offer", detail: "Free or unusually cheap followers, likes and views are commonly used to lure users into fake login pages, surveys or payment traps." },
     { regex: /(?:free|instant|unlimited|cheap|get)\s*(?:youtube\s*)?(?:subscribers?|watch\s*time|views?)/i, level: "high", title: "Fake YouTube growth offer", detail: "Free subscriber or watch-time offers may be used to steal account credentials or collect personal information." },
