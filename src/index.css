@@ -340,3 +340,14 @@ body{overflow-x:hidden}
  .guard-live{right:10px;top:9px;font-size:6px}
 }
 @media(prefers-reduced-motion:reduce){.guard-status-panel:after,.guard-orbit,.guard-live i{animation:none}}
+
+/* ZXH OFFICIAL — visible poster and reliable install invitation */
+.social-poster-card{position:relative;margin:0 0 22px;overflow:hidden;border:1px solid rgba(255,65,99,.32);border-radius:20px;background:#080b12;box-shadow:0 14px 34px rgba(0,0,0,.28),0 0 22px rgba(255,0,55,.08)}
+.social-poster-card img{display:block;width:100%;height:auto;aspect-ratio:1672/941;object-fit:cover;background:#0a0d14}
+.social-poster-card figcaption{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:12px 15px;background:linear-gradient(90deg,rgba(78,5,27,.88),rgba(7,10,17,.98));color:#ffdbe3}
+.social-poster-card figcaption span{font:800 10px Orbitron,sans-serif;letter-spacing:1.2px;color:#ff9bae}
+.social-poster-card figcaption b{font:700 8px Orbitron,sans-serif;letter-spacing:.7px;color:#d9c1ca}
+.install-app-button{white-space:nowrap;cursor:pointer}
+.install-confirm,.install-later,.install-close{cursor:pointer}
+.install-confirm:disabled{opacity:.6;cursor:wait}
+@media(max-width:430px){.social-poster-card{border-radius:16px;margin-bottom:18px}.social-poster-card figcaption{padding:10px 12px}.social-poster-card figcaption b{font-size:7px}}
