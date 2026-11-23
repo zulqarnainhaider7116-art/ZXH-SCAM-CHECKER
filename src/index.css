@@ -326,3 +326,18 @@ body{overflow-x:hidden}
 }
 @media(prefers-reduced-motion:reduce){.guard-status-panel:after,.guard-orbit,.guard-live i{animation:none}}
 
+
+/* ZXH OFFICIAL — timed install popup only; no header button */
+.install-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(1,12,10,.76);backdrop-filter:blur(9px);display:grid;place-items:center;padding:20px}
+.install-modal{position:relative;width:min(100%,390px);padding:30px 24px 22px;border:1px solid rgba(0,230,173,.28);border-radius:25px;background:linear-gradient(155deg,#102b27,#071b19 72%);color:#effff9;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.48)}
+.install-close{position:absolute;right:15px;top:15px;width:34px;height:34px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:#eafff8;display:grid;place-items:center}
+.install-icon{width:64px;height:64px;margin:4px auto 16px;border-radius:20px;background:linear-gradient(145deg,#00e6a8,#007e70);color:#06251f;display:grid;place-items:center;box-shadow:0 8px 28px rgba(0,230,173,.2)}
+.install-modal>small{font-size:10px;letter-spacing:2px;color:#69e9c4;font-weight:800}
+.install-modal h2{font-size:25px;margin:10px 0 7px;color:#fff}
+.install-modal>p{font-size:13px;color:#b9d8ce;margin:0 0 20px}
+.install-confirm{width:100%;min-height:48px;border:0;border-radius:13px;background:linear-gradient(100deg,#00e6a8,#00b6ce);color:#03231d;font-weight:900;letter-spacing:.7px}
+.install-confirm:disabled{opacity:.65}
+.install-steps{display:grid;gap:9px;text-align:left;padding:13px;margin:0 0 16px;border-radius:13px;background:rgba(255,255,255,.06);font-size:12px;color:#c5e5db}
+.install-steps>b{color:#69e9c4;font-size:10px;letter-spacing:1.3px}
+.install-later{display:block;margin:13px auto 0;border:0;background:transparent;color:#a9c5bb;font-size:11px;font-weight:800;letter-spacing:1px;padding:8px 16px}
+.install-modal footer{margin-top:14px;color:#638d80;font-size:9px;letter-spacing:1.5px}
