@@ -37,6 +37,15 @@ function meta(html:string,name:string) {
  }
  return "";
 }
+function inferPurpose(text:string) {
+ const value=text.toLowerCase();
+ if(/(?:free|fake|bot|instant).{0,50}(?:followers?|likes?|views?|subscribers?)/i.test(value))return "Social-media growth / follower offer";
+ if(/(?:mobile|phone|device|موبائل).{0,70}(?:control|monitor|access|کنٹرول)|(?:control\s*your\s*(?:mobile|phone)).{0,40}browser/i.test(value))return "Mobile-control / remote-access related content";
+ if(/(?:nawaz\s*sharif|نواز\s*شریف|13[,.]?000|13000|free cash|cash reward|government reward|سرکاری انعام)/i.test(value))return "Cash reward / government-scheme claim";
+ if(/(?:password|otp|one.time.password|login|sign.in|verify account|cvv|bank details)/i.test(value))return "Account login / identity or credential collection";
+ if(/(?:free internet|free data|mbs?|mobile package|free package|مفت انٹرنیٹ|مفت پیکج)/i.test(value))return "Mobile-data / free-package promotion";
+ return "General website content — purpose not conclusively identified from available page text";
+}
 function inspectText(text:string, base:URL, links:string[], forms:string[], iframeCount:number) {
  const findings:Finding[]=[]; const add=(level:Level,title:string,detail:string,evidence:string[]=[] )=>findings.push({level,title,detail,evidence:evidence.slice(0,5)});
  const checks:Array<[RegExp,Level,string,string]>=[
@@ -100,10 +109,14 @@ export default async function handler(req:any,res:any) {
  const visibleText=plain(html).slice(0,12000);
  const linkMatches=[...html.matchAll(/<a\b[^>]*href=["']([^"'#]+)["'][^>]*>/gi)].slice(0,100);
  const links=linkMatches.map(m=>{try{return new URL(decode(m[1]),current).toString()}catch{return ""}}).filter(Boolean);
+ const downloadMatches=[...html.matchAll(/<a\b([^>]*?)href=["']([^"']+)["']([^>]*)>/gi)].filter(m=>/\bdownload\b/i.test((m[1]||"")+" "+(m[3]||""))||/\.(?:apk|exe|msi|dmg|zip|rar|7z|pdf|docx?|xlsx?|pptx?|scr|bat|cmd)(?:[?#]|$)/i.test(m[2])).slice(0,30);
+ const downloads=downloadMatches.map(m=>{try{return new URL(decode(m[2]),current).toString()}catch{return ""}}).filter(Boolean);
  const forms=[...html.matchAll(/<form\b[^>]*action=["']?([^"'\s>]*)/gi)].slice(0,20).map(m=>{try{return new URL(decode(m[1]||current.toString()),current).toString()}catch{return current.toString()}});
  const iframeCount=(html.match(/<iframe\b/gi)||[]).length;
- const combined=[title,description,keywords.join(" "),visibleText,links.join(" "),forms.join(" ")].join(" ");
+ const combined=[title,description,keywords.join(" "),visibleText,links.join(" "),forms.join(" "),downloads.join(" ")].join(" ");
  const findings=inspectText(combined,current,links,forms,iframeCount);
- const pageAnalysis={status:"inspected",finalUrl:current.toString(),title,description,keywords,visibleTextPreview:visibleText.slice(0,1800),links:links.slice(0,20),forms:forms.slice(0,10),iframeCount,findings,contentLength:html.length};
+ if(downloads.length)findings.push({level:"high",title:"Downloadable file links detected",detail:"The page offers files for download. Do not install APKs or run executable files unless the publisher and file are independently verified.",evidence:downloads.slice(0,5)});
+ const purpose=inferPurpose(combined);
+ const pageAnalysis={status:"inspected",finalUrl:current.toString(),title,description,keywords,purpose,visibleTextPreview:visibleText.slice(0,1800),links:links.slice(0,20),forms:forms.slice(0,10),downloads:downloads.slice(0,20),iframeCount,findings,contentLength:html.length};
  return res.status(200).json({status:"inspected",pageAnalysis});
 }
