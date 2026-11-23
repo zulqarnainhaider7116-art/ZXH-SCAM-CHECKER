@@ -7,7 +7,7 @@ import {
 
 type Screen = 'welcome' | 'home' | 'scan' | 'history' | 'settings';
 type Finding = { level: 'critical' | 'high' | 'medium' | 'low'; title: string; detail: string };
-type PageAnalysis = { status: string; finalUrl?: string; title?: string; description?: string; keywords?: string[]; visibleTextPreview?: string; links?: string[]; forms?: string[]; iframeCount?: number; findings?: Finding[]; contentLength?: number };
+type PageAnalysis = { status: string; finalUrl?: string; title?: string; description?: string; keywords?: string[]; purpose?: string; visibleTextPreview?: string; links?: string[]; forms?: string[]; downloads?: string[]; iframeCount?: number; findings?: Finding[]; contentLength?: number };
 type Result = { verdict: string; level: Finding['level']; findings: Finding[]; value: string; contentType?: 'url' | 'message' | 'message_with_link'; checkedSources?: string[]; unavailableSources?: string[]; pageAnalysis?: PageAnalysis; domainRegistration?: { domain: string; registeredAt?: string; ageDays?: number; registrar?: string; status: 'found' | 'not_found' | 'unavailable' } };
 
 function inspect(value: string): Result {
@@ -120,8 +120,6 @@ function App() {
   }, []);
   const [input, setInput] = useState('');
   const [inputKind, setInputKind] = useState<'url' | 'message' | 'message_with_link'>('message');
-  const autoScanTimer = useRef<number | null>(null);
-  const autoScanStartedFor = useRef('');
   const [homeUrl, setHomeUrl] = useState('');
   const [result, setResult] = useState<Result | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
@@ -138,8 +136,6 @@ function App() {
   const runScan = async (value = input) => {
     const submitted = value.trim();
     if (!submitted) { setNotice('Paste a message or URL first.'); return; }
-    if (autoScanTimer.current !== null) { window.clearTimeout(autoScanTimer.current); autoScanTimer.current = null; }
-    autoScanStartedFor.current = submitted;
     setScanning(true); setResult(null); setNotice('');
     const detectedKind = detectContentType(submitted);
     const isUrl = detectedKind === 'url';
@@ -222,22 +218,11 @@ function App() {
       setNotice(error instanceof Error ? error.message : 'Could not reach scanner.');
     } finally { setScanning(false); }
   };
-  useEffect(() => {
-    const value = input.trim();
-    if (screen !== 'scan' || value.length < 8 || scanning || result?.value === value || autoScanStartedFor.current === value) return;
-    const timer = window.setTimeout(() => {
-      if (autoScanStartedFor.current !== value) {
-        autoScanStartedFor.current = value;
-        void runScan(value);
-      }
-    }, 1200);
-    return () => window.clearTimeout(timer);
-  }, [input, screen, scanning, result]);
   const runHomeUrlScan = () => {
     if (!homeUrl.trim()) { setNotice('Paste a URL first.'); return; }
     setInput(homeUrl.trim()); setResult(null); navigateTo('scan'); void runScan(homeUrl);
   };
-  const startNew = () => { setInput(''); setInputKind('message'); setResult(null); setAlertDismissed(false); setNotice(''); autoScanStartedFor.current = ''; navigateTo('scan'); };
+  const startNew = () => { setInput(''); setInputKind('message'); setResult(null); setAlertDismissed(false); setNotice(''); navigateTo('scan'); };
   const count = history.length;
   const riskCounts = useMemo(() => ({ critical: history.filter(x => x.level === 'critical').length, high: history.filter(x => x.level === 'high').length, medium: history.filter(x => x.level === 'medium').length }), [history]);
   return <main className="app">
@@ -291,7 +276,7 @@ function App() {
         <div className="scan-form glass-panel">
           <div className="message-mode-label"><MessageSquareText size={16}/> LINK &amp; MESSAGE THREAT ANALYSER</div>
           <label>PASTE LINK OR MESSAGE HERE</label>
-          <textarea value={input} onChange={e => { const v=e.target.value; setInput(v); setInputKind(detectContentType(v)); setResult(null); setNotice(''); autoScanStartedFor.current = ''; if (autoScanTimer.current !== null) window.clearTimeout(autoScanTimer.current); }} placeholder="Paste a URL or suspicious SMS / WhatsApp message…" rows={3}/>
+          <textarea value={input} onChange={e => { const v=e.target.value; setInput(v); setInputKind(detectContentType(v)); setResult(null); setNotice(''); }} placeholder="Paste a URL or suspicious SMS / WhatsApp message…" rows={3}/>
           <div className={"detected-type " + inputKind}><span className="detected-type-pulse"/><b>{inputKind === "url" ? "WEBSITE / URL DETECTED" : inputKind === "message_with_link" ? "TEXT MESSAGE + LINK DETECTED" : "TEXT MESSAGE DETECTED"}</b><small>{inputKind === "url" ? "Website reputation scanner selected" : inputKind === "message_with_link" ? "Message scanner selected • embedded link noticed" : "Message threat scanner selected"}</small></div><div className="input-meta"><span><LockKeyhole size={12}/> Auto-detection selects the correct scanner</span><span>{input.length} chars</span></div>
           <button className="scan-button" onClick={() => void runScan()} disabled={!input.trim() || scanning}>{scanning ? "SCANNING…" : "SCAN LINK / MESSAGE"} <ArrowRight size={17}/></button>
           {notice && <p className="notice">{notice}</p>}
@@ -306,10 +291,12 @@ function App() {
               {result.pageAnalysis.finalUrl && result.pageAnalysis.finalUrl !== result.value && <div className="page-intel-field"><small>FINAL REDIRECT DESTINATION</small><strong>{result.pageAnalysis.finalUrl}</strong></div>}
               {result.pageAnalysis.title && <div className="page-intel-field"><small>PAGE TITLE</small><strong>{result.pageAnalysis.title}</strong></div>}
               {result.pageAnalysis.description && <div className="page-intel-field"><small>META DESCRIPTION</small><p>{result.pageAnalysis.description}</p></div>}
+              {result.pageAnalysis.purpose && <div className="page-intel-field"><small>DETECTED PAGE PURPOSE</small><p>{result.pageAnalysis.purpose}</p></div>}
               {!!result.pageAnalysis.keywords?.length && <div className="page-intel-field"><small>META KEYWORDS</small><p>{result.pageAnalysis.keywords.join(' • ')}</p></div>}
               {!!result.pageAnalysis.visibleTextPreview && <div className="page-intel-field"><small>VISIBLE TEXT PREVIEW</small><p>{result.pageAnalysis.visibleTextPreview}</p></div>}
               {!!result.pageAnalysis.findings?.length && <div className="page-intel-field"><small>CONTENT INDICATORS</small><p>{result.pageAnalysis.findings.length} content indicator(s) detected and included in the risk report.</p></div>}
               {!!result.pageAnalysis.forms?.length && <div className="page-intel-field"><small>FORM DESTINATIONS</small>{result.pageAnalysis.forms.map((url,i)=><a key={i} href={url} target="_blank" rel="noopener noreferrer">{url}</a>)}</div>}
+              {!!result.pageAnalysis.downloads?.length && <div className="page-intel-field"><small>DOWNLOAD LINKS ({result.pageAnalysis.downloads.length})</small>{result.pageAnalysis.downloads.map((url,i)=><a key={i} href={url} target="_blank" rel="noopener noreferrer">{url}</a>)}</div>}
               {!!result.pageAnalysis.links?.length && <div className="page-intel-field"><small>PAGE LINKS ({result.pageAnalysis.links.length})</small>{result.pageAnalysis.links.slice(0,8).map((url,i)=><a key={i} href={url} target="_blank" rel="noopener noreferrer">{url}</a>)}</div>}
               <div className="page-intel-foot">Inspected {result.pageAnalysis.contentLength || 0} HTML characters • Forms are never submitted • Page scripts are never executed</div>
             </div>}
