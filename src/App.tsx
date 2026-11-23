@@ -64,6 +64,33 @@ function getSafetyActions(result: Result): string[] {
   ];
 }
 
+
+function getThreatCategory(result: Result): string {
+  const text = result.findings.map(f => f.title + " " + f.detail).join(" ").toLowerCase();
+  if (/known threat|malware|phishing|social engineering/.test(text)) return "Known malicious / phishing indicator";
+  if (/otp|password|credential|cvv|bank|account takeover|sensitive information/.test(text)) return "Credential theft / account takeover";
+  if (/payment|money|fee|cash reward|prize|giveaway|financial/.test(text)) return "Financial fraud / reward bait";
+  if (/ip.address|numeric ip|malformed numeric/.test(text)) return "Raw IP / deceptive network address";
+  if (/shortened|redirect|destination/.test(text)) return "Hidden destination / redirect risk";
+  if (/impersonat|organisation|government|public.figure|brand/.test(text)) return "Brand or authority impersonation";
+  if (/download|apk|file|extension/.test(text)) return "Suspicious download / file lure";
+  if (/urgent|pressure/.test(text)) return "Social engineering / urgency pressure";
+  return result.contentType === "url" ? "Website reputation & content review" : "Message pattern analysis";
+}
+function getRiskScore(result: Result): number {
+  const base = result.level === "critical" ? 96 : result.level === "high" ? 82 : result.level === "medium" ? 56 : 14;
+  const distinct = new Set(result.findings.map(f => f.title.toLowerCase())).size;
+  const corroboration = Math.min(8, Math.max(0, distinct - 1) * 2);
+  const feedMatch = result.findings.some(f => /known threat intelligence match/i.test(f.title)) ? 4 : 0;
+  return Math.min(99, base + corroboration + feedMatch);
+}
+function getAssessmentSummary(result: Result): string {
+  if (result.level === "critical") return "A high-confidence threat indicator or critical combination of signals was detected. Treat this content as unsafe unless independently disproven.";
+  if (result.level === "high") return "Multiple or significant warning indicators were found. Do not interact with the content until its source and destination are independently verified.";
+  if (result.level === "medium") return "Some suspicious characteristics were detected. The scan is inconclusive; pause and verify before clicking, downloading, paying or sharing data.";
+  return "No strong warning pattern was identified in the checks completed. This is not proof of legitimacy or safety.";
+}
+
 function detectContentType(value: string): 'url' | 'message' | 'message_with_link' {
   const text = value.trim();
   const urlPattern = /(https?:[/]{1,}|www[.])[^ ]+|[a-z0-9-]+[.][a-z0-9-]+(?:[.][a-z0-9-]+)*(?:[/][^ ]*)?/i;
@@ -321,10 +348,18 @@ function App() {
               {!!result.pageAnalysis.links?.length && <div className="page-intel-field"><small>PAGE LINKS ({result.pageAnalysis.links.length})</small>{result.pageAnalysis.links.slice(0,8).map((url,i)=><a key={i} href={url} target="_blank" rel="noopener noreferrer">{url}</a>)}</div>}
               <div className="page-intel-foot">Inspected {result.pageAnalysis.contentLength || 0} HTML characters • Forms are never submitted • Page scripts are never executed</div>
             </div>}
+            <section className={"threat-assessment " + result.level}>
+              <div className="threat-assessment-top"><span>𖤍 ZXH OFFICIAL • INTELLIGENCE SUMMARY</span><b>{getRiskScore(result)}/100</b></div>
+              <div className="threat-score-track"><i style={{width: getRiskScore(result) + "%"}} /></div>
+              <div className="threat-assessment-meta"><span>HEURISTIC RISK SCORE</span><span>{getThreatCategory(result)}</span></div>
+              <p>{getAssessmentSummary(result)}</p>
+              <div className="threat-assessment-foot"><span>{result.findings.length} indicator(s)</span><span>{new Set(result.findings.map(f => f.title)).size} unique signal(s)</span><span>{result.contentType === "url" ? "URL INTELLIGENCE" : result.contentType === "message_with_link" ? "MESSAGE + LINK" : "MESSAGE INTELLIGENCE"}</span></div>
+            </section>
             <div className={'verdict ' + result.level}><span className="verdict-icon"><CircleAlert size={19}/></span><div><b>{result.verdict}</b><small>{result.level.toUpperCase()} RISK INDICATORS</small></div></div>
             <section className={'response-protocol ' + result.level}>
               <div className="response-protocol-head"><span>𖤍 ZXH OFFICIAL • RESPONSE PROTOCOL</span><b>{result.level === 'critical' || result.level === 'high' ? 'ACTION REQUIRED' : result.level === 'medium' ? 'VERIFY FIRST' : 'STAY CAUTIOUS'}</b></div>
               <h3>{result.level === 'critical' || result.level === 'high' ? 'Protect your accounts and money now' : result.level === 'medium' ? 'Do not trust the claim yet' : 'Keep your normal security checks active'}</h3>
+              <p className="response-context">{result.contentType === 'url' ? 'LINK RESPONSE: Do not revisit the destination, download files or approve browser permission prompts until verified.' : result.contentType === 'message_with_link' ? 'MESSAGE RESPONSE: Treat both the sender and embedded destination as untrusted until independently verified.' : 'MESSAGE RESPONSE: Do not follow payment, login, verification or remote-access instructions from an unverified sender.'}</p>
               <ol>{getSafetyActions(result).map((action,i)=><li key={i}><span>{String(i+1).padStart(2,'0')}</span><p>{action}</p></li>)}</ol>
               <small>Guidance is based on the indicators found in this scan. If you have already interacted with the sender or page, follow the relevant recovery steps immediately.</small>
             </section>
