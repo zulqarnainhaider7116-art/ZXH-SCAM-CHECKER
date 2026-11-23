@@ -278,10 +278,6 @@ function App() {
           <div className="guard-status-copy"><small>𖤍 ZXH SECURITY GUARD 𖤍</small><b>ACTIVE DEFENCE ONLINE</b><span>URL REPUTATION • PAGE INTELLIGENCE • MESSAGE ANALYSIS</span></div>
           <span className="guard-live"><i/> LIVE</span>
         </div>
-        <figure className="social-poster-card">
-          <img src="/social-preview.png" alt="ZXH OFFICIAL CyberGuard social poster" loading="eager" decoding="async" />
-          <figcaption><span>ZXH OFFICIAL</span><b>CYBERGUARD • PHISHING ATTACK SHIELD</b></figcaption>
-        </figure>
         <div className="home-link-box glass-panel">
           <div className="home-link-heading"><span className="summary-icon"><Link2/></span><div><b>Check a suspicious link</b><small>Paste a URL to scan for known threats</small></div></div>
           <label htmlFor="home-url">PASTE URL TO CHECK</label>
