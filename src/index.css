@@ -377,3 +377,82 @@ body{overflow-x:hidden}
 .threat-assessment-foot{padding-top:10px;border-top:1px solid rgba(120,140,150,.18);font-size:9px;font-weight:800;letter-spacing:.04em;opacity:.72;}
 .response-context{margin:0 0 12px;padding:10px 12px;border-radius:11px;background:rgba(120,140,150,.09);font-size:11px;line-height:1.55;}
 @media(max-width:420px){.threat-assessment{padding:14px}.threat-assessment-top b{font-size:22px}.threat-assessment-foot{font-size:8px}}
+
+/* ZXH OFFICIAL — desktop layout correction; mobile layout remains unchanged */
+@media (min-width: 700px) {
+  .app {
+    width: min(100% - 48px, 1440px);
+    max-width: 1440px;
+    padding-left: clamp(28px, 4.2vw, 72px);
+    padding-right: clamp(28px, 4.2vw, 72px);
+    padding-bottom: 132px;
+  }
+  .app-header,
+  .dashboard,
+  .scan-page,
+  .simple-page {
+    width: 100%;
+    max-width: 1240px;
+  }
+  .app-header { margin-left: auto; margin-right: auto; }
+  .welcome-screen { max-width: 760px; }
+  .bottom-nav { max-width: 760px; }
+  .dashboard { margin-left: auto; margin-right: auto; }
+  .scan-page { margin-left: auto; margin-right: auto; }
+}
+
+@media (min-width: 1100px) {
+  .app {
+    width: min(100% - 64px, 1480px);
+    padding-left: clamp(48px, 5vw, 92px);
+    padding-right: clamp(48px, 5vw, 92px);
+  }
+  .app-header,
+  .dashboard,
+  .scan-page,
+  .simple-page { max-width: 1280px; }
+  .app-header { height: 84px; }
+  .dashboard { column-gap: clamp(24px, 2.4vw, 38px); row-gap: 24px; }
+  .scan-page:has(.radar-panel) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: clamp(28px, 3vw, 48px);
+  }
+  .scan-page:has(.radar-panel) > .scan-form,
+  .scan-page:has(.radar-panel) > .scan-progress-anchor {
+    min-width: 0;
+    width: 100%;
+  }
+  .scan-page:has(.radar-panel) > .scan-progress-anchor .radar-panel {
+    width: 100%;
+  }
+  .scan-page:not(:has(.radar-panel)) > .scan-form { max-width: 980px; }
+  .result-area { width: 100%; }
+  .result-card.glass-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(24px, 3vw, 44px);
+    align-items: start;
+  }
+  .result-card > .result-signal,
+  .result-card > .scanned-target,
+  .result-card > .page-intel,
+  .result-card > .verdict,
+  .result-card > .source-coverage,
+  .result-card > .domain-intel,
+  .result-card > .scan-button {
+    grid-column: 1 / -1;
+  }
+  .result-card > .threat-assessment,
+  .result-card > .response-protocol,
+  .result-card > .finding-list { min-width: 0; }
+  .result-card > .scan-button { max-width: 360px; justify-self: center; }
+  .result-card > .finding-list { align-self: stretch; }
+}
+
+@media (min-width: 1600px) {
+  .app { width: min(100% - 96px, 1560px); }
+  .app-header,
+  .dashboard,
+  .scan-page,
+  .simple-page { max-width: 1360px; }
+}
