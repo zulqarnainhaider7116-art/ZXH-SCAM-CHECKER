@@ -360,3 +360,20 @@ body{overflow-x:hidden}
 .response-protocol li p{margin:2px 0 0;color:#e8e4e8;font-size:13px;line-height:1.65}
 .response-protocol>small{display:block;margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.08);color:#9cabb5;font-size:10px;line-height:1.6}
 @media(min-width:700px){.response-protocol{padding:22px 24px}.response-protocol li p{font-size:14px}.response-protocol>small{font-size:11px}}
+
+
+/* ZXH threat intelligence response layer — presentation only; existing site theme retained */
+.threat-assessment{margin:16px 0;padding:17px;border:1px solid rgba(0,190,170,.22);border-radius:18px;background:linear-gradient(135deg,rgba(0,190,170,.075),rgba(0,120,255,.045));}
+.threat-assessment.critical,.threat-assessment.high{border-color:rgba(239,68,68,.3);background:linear-gradient(135deg,rgba(239,68,68,.09),rgba(255,120,70,.035));}
+.threat-assessment.medium{border-color:rgba(245,158,11,.3);background:linear-gradient(135deg,rgba(245,158,11,.09),rgba(255,190,60,.035));}
+.threat-assessment-top,.threat-assessment-meta,.threat-assessment-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.threat-assessment-top span{font-size:10px;font-weight:800;letter-spacing:.09em;opacity:.78;}
+.threat-assessment-top b{font-size:25px;letter-spacing:-.04em;}
+.threat-score-track{height:7px;margin:11px 0 9px;overflow:hidden;border-radius:99px;background:rgba(120,140,150,.18);}
+.threat-score-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#00c89b,#f0b33c,#ef4444);}
+.threat-assessment-meta{font-size:9px;font-weight:800;letter-spacing:.06em;opacity:.78;}
+.threat-assessment-meta span:last-child{text-align:right;}
+.threat-assessment>p{font-size:12px;line-height:1.65;margin:12px 0;color:inherit;opacity:.88;}
+.threat-assessment-foot{padding-top:10px;border-top:1px solid rgba(120,140,150,.18);font-size:9px;font-weight:800;letter-spacing:.04em;opacity:.72;}
+.response-context{margin:0 0 12px;padding:10px 12px;border-radius:11px;background:rgba(120,140,150,.09);font-size:11px;line-height:1.55;}
+@media(max-width:420px){.threat-assessment{padding:14px}.threat-assessment-top b{font-size:22px}.threat-assessment-foot{font-size:8px}}
