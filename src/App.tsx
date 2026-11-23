@@ -156,7 +156,11 @@ function App() {
     setScanning(true); setResult(null); setNotice('');
     const detectedKind = detectContentType(submitted);
     const isUrl = detectedKind === 'url';
-    const scanTarget = isUrl && !/^https?:\/\//i.test(submitted) ? 'https://' + submitted : submitted;
+    const scanTarget = isUrl
+      ? (/^https?:\\/+?/i.test(submitted)
+          ? submitted.replace(/^https?:\\/+?/i, match => match.toLowerCase().startsWith('https') ? 'https://' : 'http://')
+          : /^\\/\\//.test(submitted) ? 'https:' + submitted : 'https://' + submitted)
+      : submitted;
     const minimumScanTime = new Promise(resolve => window.setTimeout(resolve, 1800));
     try {
       const response = await fetch(isUrl ? '/api/check-url' : '/api/check-message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(isUrl ? { url: scanTarget } : { message: submitted }) });
