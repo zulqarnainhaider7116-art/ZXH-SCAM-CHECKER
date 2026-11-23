@@ -115,7 +115,7 @@ export default async function handler(req: any, res: any) {
   if (req.method !== "POST") return res.status(405).json({ status: "error", message: "Use POST." });
   const url = typeof req.body?.url === "string" ? req.body.url.trim() : "";
   // Detect dotted numeric hosts before URL parsing, including malformed IPv4-like links.
-  const numericHost = url.match(/(?:https?:\\/\\/|https?:\\/+|\\/\\/)?(\\d{1,5}(?:\\.\\d{1,5}){3})(?=[:/?#\\s]|$)/i)?.[1];
+  const numericHost = url.match(/(?:https?:\/\/|https?:\/+|\/\/)?(\d{1,5}(?:\.\d{1,5}){3})(?=[:/?#\s]|$)/i)?.[1];
   if (numericHost) {
     const octets = numericHost.split(".").map(Number);
     if (octets.some(part => part > 255)) {
