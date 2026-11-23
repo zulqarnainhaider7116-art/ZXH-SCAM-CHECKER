@@ -157,9 +157,9 @@ function App() {
     const detectedKind = detectContentType(submitted);
     const isUrl = detectedKind === 'url';
     const scanTarget = isUrl
-      ? (/^https?:\\/+?/i.test(submitted)
+      ? (/^https?:\/+/i.test(submitted)
           ? submitted.replace(/^https?:\/+/i, match => match.toLowerCase().startsWith('https') ? 'https://' : 'http://')
-          : /^\\/\\//.test(submitted) ? 'https:' + submitted : 'https://' + submitted)
+          : /^\/\//.test(submitted) ? 'https:' + submitted : 'https://' + submitted)
       : submitted;
     const minimumScanTime = new Promise(resolve => window.setTimeout(resolve, 1800));
     try {
