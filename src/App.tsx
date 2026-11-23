@@ -75,36 +75,52 @@ function RadarScanner() {
 
 function App() {
   const [screen, setScreen] = useState<Screen>('welcome');
-  // Native browser install prompt: never replace it with a custom install button/modal.
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const [installBusy, setInstallBusy] = useState(false);
+  const isInstalled = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true || document.referrer.startsWith('android-app://');
   useEffect(() => {
-    let deferred: any = null;
-    let timer: number | undefined;
-    const startedAt = Date.now();
-    const isInstalled = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
     if (isInstalled()) return;
+    let timer: number | undefined;
     const onInstallable = (event: Event) => {
       const promptEvent = event as Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
-      if (isInstalled()) return;
-      (promptEvent as any).preventDefault?.();
-      deferred = promptEvent;
-      if (timer !== undefined) window.clearTimeout(timer);
-      const wait = Math.max(0, 5000 - (Date.now() - startedAt));
-      timer = window.setTimeout(async () => {
-        if (!deferred || isInstalled()) return;
-        const prompt = deferred;
-        deferred = null;
-        try { await prompt.prompt(); await prompt.userChoice; } catch (error) { console.info('ZXH native install prompt was not shown:', error); }
-      }, wait);
+      event.preventDefault();
+      setDeferredInstallPrompt(promptEvent);
     };
-    const onInstalled = () => { deferred = null; if (timer !== undefined) window.clearTimeout(timer); };
+    const onInstalled = () => {
+      setDeferredInstallPrompt(null);
+      setShowInstallModal(false);
+      setShowInstallHelp(false);
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
     window.addEventListener('beforeinstallprompt', onInstallable as EventListener);
     window.addEventListener('appinstalled', onInstalled);
+    // Show the install invitation on every browser visit after five seconds.
+    // This timer is independent of beforeinstallprompt, which some browsers never fire.
+    timer = window.setTimeout(() => {
+      if (!isInstalled()) setShowInstallModal(true);
+    }, 5000);
     return () => {
       window.removeEventListener('beforeinstallprompt', onInstallable as EventListener);
       window.removeEventListener('appinstalled', onInstalled);
       if (timer !== undefined) window.clearTimeout(timer);
     };
   }, []);
+  const openInstallModal = () => { setShowInstallHelp(false); setShowInstallModal(true); };
+  const handleInstall = async () => {
+    if (!deferredInstallPrompt) { setShowInstallHelp(true); return; }
+    setInstallBusy(true);
+    try {
+      await deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice;
+      setDeferredInstallPrompt(null);
+      if (choice?.outcome === 'accepted') { setShowInstallModal(false); setShowInstallHelp(false); }
+      else setShowInstallHelp(true);
+    } catch {
+      setShowInstallHelp(true);
+    } finally { setInstallBusy(false); }
+  };
   const radarRef = useRef<HTMLDivElement | null>(null);
   const navigateTo = (next: Screen) => {
     if (next !== screen) window.history.pushState({ zxhScreen: next }, '', '#' + next);
@@ -227,6 +243,22 @@ function App() {
   const riskCounts = useMemo(() => ({ critical: history.filter(x => x.level === 'critical').length, high: history.filter(x => x.level === 'high').length, medium: history.filter(x => x.level === 'medium').length }), [history]);
   return <main className="app">
     <div className="ambient a1"/><div className="ambient a2"/><div className="ambient a3"/>
+    {showInstallModal && !isInstalled() && <div className="install-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) setShowInstallModal(false); }}>
+      <section className="install-modal" role="dialog" aria-modal="true" aria-labelledby="install-title">
+        <button className="install-close" aria-label="Close install invitation" onClick={() => setShowInstallModal(false)}><X size={19}/></button>
+        <div className="install-icon"><ShieldCheck size={34}/></div>
+        <small>𖤍 ZXH OFFICIAL • CYBERGUARD 𖤍</small>
+        <h2 id="install-title">Install CyberGuard</h2>
+        <p>Keep your security shield one tap away. Add ZXH OFFICIAL CyberGuard to your home screen.</p>
+        {showInstallHelp ? <div className="install-steps">
+          <b>MANUAL INSTALL STEPS</b>
+          {/iphone|ipad|ipod/i.test(navigator.userAgent) ? <span>1. Tap the Share icon in Safari.<br/>2. Choose “Add to Home Screen”.<br/>3. Tap “Add”.</span> : <span>1. Open your browser menu (⋮).<br/>2. Choose “Install app” or “Add to Home screen”.<br/>3. Confirm the installation.</span>}
+        </div> : <button className="install-confirm" onClick={() => void handleInstall()} disabled={installBusy}>{installBusy ? 'OPENING INSTALL…' : deferredInstallPrompt ? 'INSTALL APP NOW' : 'HOW TO INSTALL'} <ArrowRight size={17}/></button>}
+        <button className="install-later" onClick={() => setShowInstallModal(false)}>MAYBE LATER</button>
+        <footer>POWERED BY ZXH OFFICIAL • CREATED BY ZULQARNAIN X HAIDER</footer>
+      </section>
+    </div>}
+
     {screen === 'welcome' && <section className="welcome-screen">
       <div className="welcome-topline"><span>ZXH OFFICIAL</span></div>
       <div className="welcome-visual"><div className="umbrella">◈</div><div className="hero-shield"><ShieldCheck size={36}/></div><Wave/></div>
@@ -237,7 +269,7 @@ function App() {
     {screen !== 'welcome' && <>
       <header className="app-header">
         <button className="brand-lockup" onClick={() => setScreen('home')}><span className="brand-symbol"><ShieldCheck size={19}/></span><span><b>ZXH <i>OFFICIAL</i></b><small>CYBERGUARD SHIELD</small></span></button>
-        <div className="header-actions"><button className="icon-btn" aria-label="Notifications" onClick={() => setNotice('You are all caught up.')}><Bell size={18}/></button></div>
+        <div className="header-actions"><button className="install-app-button" onClick={openInstallModal}><Sparkles size={14}/> INSTALL APP</button><button className="icon-btn" aria-label="Notifications" onClick={() => setNotice('You are all caught up.')}><Bell size={18}/></button></div>
       </header>
       {screen === 'home' && <section className="dashboard page-in">
         <div className="greeting"><div><small>WELCOME BACK</small><h1>Cyber Defender</h1><p>Your digital safety overview</p></div><div className="avatar"><ShieldCheck/></div></div>
@@ -246,6 +278,10 @@ function App() {
           <div className="guard-status-copy"><small>𖤍 ZXH SECURITY GUARD 𖤍</small><b>ACTIVE DEFENCE ONLINE</b><span>URL REPUTATION • PAGE INTELLIGENCE • MESSAGE ANALYSIS</span></div>
           <span className="guard-live"><i/> LIVE</span>
         </div>
+        <figure className="social-poster-card">
+          <img src="/social-preview.png" alt="ZXH OFFICIAL CyberGuard social poster" loading="eager" decoding="async" />
+          <figcaption><span>ZXH OFFICIAL</span><b>CYBERGUARD • PHISHING ATTACK SHIELD</b></figcaption>
+        </figure>
         <div className="home-link-box glass-panel">
           <div className="home-link-heading"><span className="summary-icon"><Link2/></span><div><b>Check a suspicious link</b><small>Paste a URL to scan for known threats</small></div></div>
           <label htmlFor="home-url">PASTE URL TO CHECK</label>
