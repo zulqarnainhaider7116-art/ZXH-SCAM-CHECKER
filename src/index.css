@@ -341,3 +341,22 @@ body{overflow-x:hidden}
 .install-steps>b{color:#69e9c4;font-size:10px;letter-spacing:1.3px}
 .install-later{display:block;margin:13px auto 0;border:0;background:transparent;color:#a9c5bb;font-size:11px;font-weight:800;letter-spacing:1px;padding:8px 16px}
 .install-modal footer{margin-top:14px;color:#638d80;font-size:9px;letter-spacing:1.5px}
+
+
+/* ZXH OFFICIAL — expanded threat response protocol */
+.response-protocol{margin:14px 0 18px;padding:18px 16px;border:1px solid rgba(255,255,255,.12);border-left:4px solid #f0b84a;border-radius:16px;background:linear-gradient(145deg,rgba(31,24,18,.72),rgba(9,15,22,.88));box-shadow:0 12px 32px rgba(0,0,0,.2)}
+.response-protocol.critical,.response-protocol.high{border-color:rgba(255,74,103,.3);border-left-color:#ff496b;background:linear-gradient(145deg,rgba(66,9,24,.38),rgba(9,15,22,.94))}
+.response-protocol.low{border-left-color:#28c995;background:linear-gradient(145deg,rgba(8,48,39,.32),rgba(9,15,22,.9))}
+.response-protocol-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.response-protocol-head span{font:700 9px Orbitron,sans-serif;letter-spacing:1.1px;color:#ff9aae}
+.response-protocol-head b{font:800 8px Orbitron,sans-serif;letter-spacing:1px;color:#ffd58a;border:1px solid rgba(255,190,90,.3);border-radius:30px;padding:6px 9px}
+.response-protocol.critical .response-protocol-head b,.response-protocol.high .response-protocol-head b{color:#ff8299;border-color:rgba(255,74,103,.4)}
+.response-protocol.low .response-protocol-head b{color:#7ce5bf;border-color:rgba(40,201,149,.35)}
+.response-protocol h3{margin:13px 0;color:#fff;font-size:clamp(16px,4vw,20px);line-height:1.4}
+.response-protocol ol{list-style:none;display:grid;gap:10px;margin:0;padding:0;counter-reset:response}
+.response-protocol li{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-top:1px solid rgba(255,255,255,.075)}
+.response-protocol li>span{flex:0 0 27px;width:27px;height:27px;display:grid;place-items:center;border-radius:9px;background:rgba(255,75,105,.12);color:#ff9bad;font:800 9px Orbitron,sans-serif}
+.response-protocol.low li>span{background:rgba(40,201,149,.12);color:#7ce5bf}
+.response-protocol li p{margin:2px 0 0;color:#e8e4e8;font-size:13px;line-height:1.65}
+.response-protocol>small{display:block;margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.08);color:#9cabb5;font-size:10px;line-height:1.6}
+@media(min-width:700px){.response-protocol{padding:22px 24px}.response-protocol li p{font-size:14px}.response-protocol>small{font-size:11px}}
