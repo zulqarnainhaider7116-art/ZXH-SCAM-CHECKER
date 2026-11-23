@@ -152,6 +152,7 @@ function App() {
   };
 
   const radarRef = useRef<HTMLDivElement | null>(null);
+  const resultRef = useRef<HTMLDivElement | null>(null);
   const navigateTo = (next: Screen) => {
     if (next !== screen) window.history.pushState({ zxhScreen: next }, '', '#' + next);
     setScreen(next);
@@ -179,6 +180,16 @@ function App() {
     const timer = window.setTimeout(() => radarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
     return () => window.clearTimeout(timer);
   }, [scanning, screen]);
+  useEffect(() => {
+    if (!result || screen !== 'scan') return;
+    const timer = window.setTimeout(() => {
+      const node = resultRef.current;
+      if (!node) return;
+      const top = node.getBoundingClientRect().top + window.scrollY - 16;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [result, screen]);
   const runScan = async (value = input) => {
     const submitted = value.trim();
     if (!submitted) { setNotice('Paste a message or URL first.'); return; }
@@ -332,7 +343,7 @@ function App() {
           {notice && <p className="notice">{notice}</p>}
         </div>
         {scanning && <div ref={radarRef} className="scan-progress-anchor"><RadarScanner/></div>}
-        {result && <div className="result-area page-in">
+        {result && <div ref={resultRef} className="result-area page-in">
           <div className="section-title"><h2>Threat Analysis Report</h2><span>JUST NOW</span></div>
           {(result.level === "critical" || result.level === "high") && !alertDismissed && <div className="zxh-alert-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) setAlertDismissed(true); }}><section className="zxh-alert-modal" role="alertdialog" aria-modal="true" aria-labelledby="zxh-alert-title"><button className="zxh-alert-close" aria-label="Close alert" onClick={() => setAlertDismissed(true)}><X size={21}/></button><div className="alert-flash"><span>⚠</span></div><div className="zxh-alert-brand">𖤍 ZXH OFFICIAL 𖤍</div><small className="zxh-alert-kicker">CYBERGUARD SECURITY WARNING</small><strong id="zxh-alert-title">THREAT ALERT</strong><b className="zxh-alert-risk">{result.level.toUpperCase()} RISK DETECTED</b><p>{result.findings.length} security indicator(s) detected. Stop interacting with this content and review the response steps before taking any action.</p><div className="zxh-alert-owner">PROTECTED BY <b>ZXH OFFICIAL</b><span>CREATED BY ZULQARNAIN X HAIDER</span></div><button className="zxh-alert-action" onClick={() => { setAlertDismissed(true); window.setTimeout(() => document.querySelector(".result-card")?.scrollIntoView({behavior:"smooth",block:"start"}), 80); }}>VIEW FULL REPORT <ArrowRight size={17}/></button></section></div>}<div className="result-card glass-panel">
             <div className="result-signal"><div className="result-signal-icon"><ShieldCheck size={25}/></div><div><span>ZXH OFFICIAL • THREAT ANALYSIS</span><b>SCAN COMPLETED</b></div><i className={'result-level-dot ' + result.level}/></div><div className="scanned-target"><small>{result.contentType === "url" ? "SCANNED WEBSITE / URL" : result.contentType === "message_with_link" ? "SCANNED TEXT MESSAGE • LINK FOUND" : "SCANNED TEXT MESSAGE"}</small><span>{result.value}</span><em className="content-type-chip">{result.contentType === "url" ? "URL SCAN" : result.contentType === "message_with_link" ? "MESSAGE + LINK SCAN" : "MESSAGE SCAN"}</em></div>
