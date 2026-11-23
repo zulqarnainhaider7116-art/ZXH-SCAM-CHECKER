@@ -66,7 +66,7 @@ function getSafetyActions(result: Result): string[] {
 
 function detectContentType(value: string): 'url' | 'message' | 'message_with_link' {
   const text = value.trim();
-  const urlPattern = /(https?:[/]{2}|www[.])[^ ]+|[a-z0-9-]+[.][a-z0-9-]+(?:[.][a-z0-9-]+)*(?:[/][^ ]*)?/i;
+  const urlPattern = /(https?:[/]{1,}|www[.])[^ ]+|[a-z0-9-]+[.][a-z0-9-]+(?:[.][a-z0-9-]+)*(?:[/][^ ]*)?/i;
   const match = text.match(urlPattern)?.[0] || '';
   if (!match) return 'message';
   const remainder = text.replace(match, '').replace(/[ .,!?;:()[\]{}<>"']/g, '');
@@ -158,7 +158,7 @@ function App() {
     const isUrl = detectedKind === 'url';
     const scanTarget = isUrl
       ? (/^https?:\\/+?/i.test(submitted)
-          ? submitted.replace(/^https?:\\/+?/i, match => match.toLowerCase().startsWith('https') ? 'https://' : 'http://')
+          ? submitted.replace(/^https?:\/+/i, match => match.toLowerCase().startsWith('https') ? 'https://' : 'http://')
           : /^\\/\\//.test(submitted) ? 'https:' + submitted : 'https://' + submitted)
       : submitted;
     const minimumScanTime = new Promise(resolve => window.setTimeout(resolve, 1800));
