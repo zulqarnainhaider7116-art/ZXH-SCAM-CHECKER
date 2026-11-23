@@ -114,6 +114,15 @@ export default async function handler(req: any, res: any) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   if (req.method !== "POST") return res.status(405).json({ status: "error", message: "Use POST." });
   const url = typeof req.body?.url === "string" ? req.body.url.trim() : "";
+  // Detect dotted numeric hosts before URL parsing, including malformed IPv4-like links.
+  const numericHost = url.match(/(?:https?:\\/\\/|https?:\\/+|\\/\\/)?(\\d{1,5}(?:\\.\\d{1,5}){3})(?=[:/?#\\s]|$)/i)?.[1];
+  if (numericHost) {
+    const octets = numericHost.split(".").map(Number);
+    if (octets.some(part => part > 255)) {
+      const finding: Finding = { level: "high", title: "Malformed numeric IP-like link", detail: "This address contains dotted numeric host segments outside the valid IPv4 range (0–255). It is malformed or deceptive and should not be opened. Verify the sender and obtain the destination from an official source." };
+      return res.status(200).json({ status: "suspicious", verdict: "Malformed numeric IP link detected", level: "high", findings: [finding], sources: [], checkedSources: 0, checkedSourceNames: [], unavailableSources: ["Threat feeds skipped for malformed numeric host"], domainRegistration: { domain: numericHost, status: "unavailable" } });
+    }
+  }
   if (!url || url.length > 2048 || !isPublicHttpUrl(url)) {
     return res.status(400).json({ status: "error", message: "Enter a valid public HTTP or HTTPS URL." });
   }
