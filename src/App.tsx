@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Bell, ChevronRight, CircleAlert, Clock3,
   Globe2, History, Home, Link2, LockKeyhole, MessageSquareText, ScanLine,
-  Settings, Shield, ShieldAlert, TrendingUp, X
+  Settings, Shield, ShieldAlert, ShieldCheck, TrendingUp, X
 } from 'lucide-react';
 
 type Screen = 'welcome' | 'home' | 'scan' | 'history' | 'settings';
